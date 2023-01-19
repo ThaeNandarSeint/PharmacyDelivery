@@ -20,10 +20,6 @@ app.use(
   })
 );
 
-// routes
-const categoryRoute = require("./routes/categoryRoute");
-app.use("/api/categories", categoryRoute);
-
 // build server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
@@ -34,6 +30,7 @@ app.listen(PORT, () => {
 const authRoute = require('./routes/authRoute')
 const userRoute = require('./routes/userRoute');
 const medicineRoute = require('./routes/medicineRoute');
+const categoryRoute = require("./routes/categoryRoute");
 
 // middlewares
 const { userAuth } = require('./middlewares/userAuth');
@@ -41,6 +38,7 @@ const { userAuth } = require('./middlewares/userAuth');
 app.use('/api/auth', authRoute)
 app.use('/api/users', userAuth, userRoute)
 app.use('/api/medicines', userAuth, medicineRoute)
+app.use("/api/categories", userAuth, categoryRoute);
 
 // handle errors
 app.use(morgan("dev"));

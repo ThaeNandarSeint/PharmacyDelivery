@@ -1,25 +1,27 @@
 const joi = require("joi");
 
-const { errorHandler } = require("./../helpers/errorHandler");
-
 const validation = joi.object({
   title: joi.string().min(3).max(25).trim(true).required(),
 });
 
 const categoryValidator = async (req, res, next) => {
-  const { title } = req.body;
-  const payload = { title };
+
+  const payload = { title: req.body.title }
 
   const { error } = validation.validate(payload);
 
   if (error) {
-    res.status(406);
-    return res.json(
-      errorHandler(true, `Error in Category Data : ${error.message}`)
-    );
+
+    return res.status(406).json({ status: 406, msg: `Error in User Data : ${error.message}` })
+
   } else {
+
+    req.folderName = `PharmacyDelivery/Categories/${req.body.title}`
     next();
+
   }
 };
 
-module.exports = categoryValidator;
+module.exports = {
+  categoryValidator
+};

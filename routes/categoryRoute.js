@@ -1,20 +1,20 @@
-const {
-  getAllCategories,
-  getCategoryByID,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-} = require("./../controllers/categoryCtrl");
+const router = require("express").Router();
+// controllers
+const { getAllCategories, createCategory, updateCategory, deleteCategory, getByCategoryId, searchCategories } = require("../controllers/categoryCtrl");
+
+// middlewares
+const { uploadImages } = require('../middlewares/uploadImages');
 
 //validation middlewares
-const categoryValidator = require("../Validators/categoryValidator");
+const { categoryValidator } = require("../Validators/categories/categoryValidator");
 
-const router = require("express").Router();
-
-router.get("/", getAllCategories);
-router.get("/:id", getCategoryByID);
-router.post("/", categoryValidator, createCategory);
-router.patch("/:id", categoryValidator, updateCategory);
+router.post("/", categoryValidator, uploadImages, createCategory);
+router.put("/:id", categoryValidator, uploadImages, updateCategory);
 router.delete("/:id", deleteCategory);
+// // read
+router.get("/", getAllCategories);
+router.get("/:id", getByCategoryId);
+
+router.get('/search/:key', searchCategories)
 
 module.exports = router;
