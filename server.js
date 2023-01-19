@@ -24,6 +24,16 @@ app.listen(PORT, ()=>{
     console.log(`Server is running on port ${PORT}`)
 })
 
+// routes
+const authRoute = require('./routes/authRoute')
+const userRoute = require('./routes/userRoute');
+
+// middlewares
+const { userAuth } = require('./middlewares/userAuth');
+
+app.use('/api/auth', authRoute)
+app.use('/api/users', userAuth, userRoute)
+
 // handle errors
 app.use(morgan('dev'))
 app.use((req, res, next)=>{
