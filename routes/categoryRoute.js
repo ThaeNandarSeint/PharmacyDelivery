@@ -5,14 +5,16 @@ const {
   updateCategory,
   deleteCategory,
 } = require("./../controllers/categoryCtrl");
-const e = require("express");
+
+//validation middlewares
+const categoryValidator = require("../Validators/categoryValidator");
 
 const router = require("express").Router();
 
 router.get("/", getAllCategories);
 router.get("/:id", getCategoryByID);
-router.post("/", createCategory);
-router.patch("/:id", updateCategory);
+router.post("/", categoryValidator, createCategory);
+router.patch("/:id", categoryValidator, updateCategory);
 router.delete("/:id", deleteCategory);
 
 module.exports = router;

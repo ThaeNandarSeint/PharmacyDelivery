@@ -53,7 +53,7 @@ const createCategory = async (req, res) => {
 
 const updateCategory = async (req, res) => {
   try {
-    const Category = await Categories.findByIDandUpdate(
+    const category = await Categories.findByIdAndUpdate(
       req.params.id,
       req.body,
       {
@@ -61,6 +61,12 @@ const updateCategory = async (req, res) => {
         runValidators: true,
       }
     );
+    if (!category) {
+      return res.status(404).json({
+        status: 404,
+        msg: "Category Not Found",
+      });
+    }
 
     res.status(200).json({
       status: 200,
@@ -68,13 +74,6 @@ const updateCategory = async (req, res) => {
         Categories: "Updated Categories are here!",
       },
     });
-
-    if (!Category) {
-      return res.status(404).json({
-        status: 404,
-        msg: "Category Not Found",
-      });
-    }
   } catch (error) {
     res.status(500).json({
       status: 500,
@@ -85,14 +84,14 @@ const updateCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
   try {
-    const Category = await Categories.findByIdAndDelete(req.params.id);
+    const category = await Categories.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       status: 200,
       msg: "successfully deleted",
     });
 
-    if (!Category) {
+    if (!category) {
       return res.status(404).json({
         status: "fail",
         message: "Category Not Found",
