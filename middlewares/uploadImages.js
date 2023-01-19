@@ -21,7 +21,9 @@ const uploadImages = async (req, res, next) => {
     }
 
     try {
-        req.folderName = `PharmacyDelivery/Users`
+        if(!req.folderName){
+            req.folderName = `PharmacyDelivery/Users`
+        }
 
         const { pictures } = req.files
 

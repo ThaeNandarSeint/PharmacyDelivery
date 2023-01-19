@@ -27,12 +27,14 @@ app.listen(PORT, ()=>{
 // routes
 const authRoute = require('./routes/authRoute')
 const userRoute = require('./routes/userRoute');
+const medicineRoute = require('./routes/medicineRoute');
 
 // middlewares
 const { userAuth } = require('./middlewares/userAuth');
 
 app.use('/api/auth', authRoute)
 app.use('/api/users', userAuth, userRoute)
+app.use('/api/medicines', userAuth, medicineRoute)
 
 // handle errors
 app.use(morgan('dev'))
