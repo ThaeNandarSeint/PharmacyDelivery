@@ -1,28 +1,34 @@
-require('dotenv').config()
-require('./db/conn');
+require("dotenv").config();
+require("./db/conn");
 
-const express = require('express')
-const cors = require('cors')
-const cookieParser = require('cookie-parser')
-const fileUpload = require('express-fileupload')
-const morgan = require('morgan')
+const express = require("express");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const fileUpload = require("express-fileupload");
+const morgan = require("morgan");
 
-const app = express()
+const app = express();
 
-app.use(express.json({ limit: '10mb' }))
-app.use(cors())
-app.use(cookieParser())
+app.use(express.json({ limit: "10mb" }));
+app.use(cors());
+app.use(cookieParser());
 
-// to upload file from form data
-app.use(fileUpload({
-    useTempFiles: true
-}))
+// // to upload file from form data
+app.use(
+  fileUpload({
+    useTempFiles: true,
+  })
+);
+
+// routes
+const categoryRoute = require("./routes/categoryRoute");
+app.use("/api/categories", categoryRoute);
 
 // build server
-const PORT = process.env.PORT || 5000
-app.listen(PORT, ()=>{
-    console.log(`Server is running on port ${PORT}`)
-})
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
 // routes
 const authRoute = require('./routes/authRoute')
@@ -37,17 +43,17 @@ app.use('/api/users', userAuth, userRoute)
 app.use('/api/medicines', userAuth, medicineRoute)
 
 // handle errors
-app.use(morgan('dev'))
-app.use((req, res, next)=>{
-    const error = new Error('Not Found')
-    error.status = 404;
-    next(error);
-})
-app.use((error, req, res, next)=>{
-    res.status(error.status || 500);
-    res.json({
-        error: {
-            message: error.message
-        }
-    })
-})
+app.use(morgan("dev"));
+app.use((req, res, next) => {
+  const error = new Error("Not Found");
+  error.status = 404;
+  next(error);
+});
+app.use((error, req, res, next) => {
+  res.status(error.status || 500);
+  res.json({
+    error: {
+      message: error.message,
+    },
+  });
+});
