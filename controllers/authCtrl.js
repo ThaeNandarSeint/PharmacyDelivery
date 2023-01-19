@@ -41,7 +41,6 @@ const register = async (req, res, next) => {
 
     } catch (err) {
         next(err);
-        return res.status(500).json({ status: 500, msg: err.message })
     }
 }
 
@@ -50,44 +49,38 @@ const activateEmail = async (req, res, next) => {
     try {
         // check email activation token
         const { activation_token } = req.body
-        const user = jwt.verify(activation_token, ACTIVATION_TOKEN_SECRET)
 
-        const { name, email, password } = user
+        jwt.verify(activation_token, ACTIVATION_TOKEN_SECRET, async (err, user) => {
+            if (err) {
+                return res.status(400).json({ status: false, msg: err.message })
+            }
+            const { name, email, password } = user
 
-        // // unique validation
-        const userEmail = await Users.findOne({ email })
-        if (userEmail) {
-            return res.status(400).json({ status: 400, msg: "This email already exists!" })
-        }
+            // // unique validation
+            const userEmail = await Users.findOne({ email })
+            if (userEmail) {
+                return res.status(400).json({ status: 400, msg: "This email already exists!" })
+            }
 
-        // // create user model & save in mongodb
-        const newUser = new Users({
-            name, 
-            email, 
-            password,
-            pictureUrls: [ "https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp" ],
-            picPublicIds: 'PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
+            // // create user model & save in mongodb
+            const newUser = new Users({
+                name,
+                email,
+                password,
+                pictureUrls: ["https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"],
+                picPublicIds: 'PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
+            })
+
+            const savedUser = await newUser.save()
+
+            const access_token = createAccessToken({ id: savedUser._id })
+            res.cookie('access_token', access_token, cookieOptions)
+
+            return res.status(201).json({ status: 201, user: savedUser, msg: "Account has been created!" })
         })
 
-        const savedUser = await newUser.save()
-
-        const access_token = createAccessToken({ id: savedUser._id })        
-        res.cookie('access_token', access_token, cookieOptions)
-
-        return res.status(201).json({ status: 201, user: savedUser, msg: "Account has been created!" })
-
     } catch (err) {
-        
-        if (err.name === 'TokenExpiredError') {
-            return res.status(406).json({ status: 406, msg: 'JWT Expired!' })
-
-        } else if(err.name === 'SyntaxError'){
-            return res.status(406).json({ status: 406, msg: 'Invalid Token!' })
-        }
-        else {
-            next(err);
-            return res.status(500).json({ status: 500, msg: err.message })
-        }
+        next(err);
     }
 }
 
@@ -121,7 +114,6 @@ const login = async (req, res, next) => {
 
     } catch (err) {
         next(err);
-        return res.status(500).json({ status: 500, msg: err.message })
     }
 }
 
@@ -142,7 +134,6 @@ const forgotPassword = async (req, res, next) => {
 
     } catch (err) {
         next(err);
-        return res.status(500).json({ status: 500, msg: err.message })
     }
 }
 
@@ -159,7 +150,6 @@ const resetPassword = async (req, res, next) => {
 
     } catch (err) {
         next(err);
-        return res.status(500).json({ status: 500, msg: err.message })
     }
 }
 
@@ -171,7 +161,6 @@ const logout = async (req, res, next) => {
 
     } catch (err) {
         next(err);
-        return res.status(500).json({ status: 500, msg: err.message })
     }
 }
 
@@ -191,7 +180,7 @@ const storeOtp = async (req, res, next) => {
         })
         await newOtp.save()
 
-        return res.json({ status: true, msg: "OTP is sent" })
+        return res.json({ status: true, otp, msg: "OTP is sent" })
 
     } catch (err) {
         next(err);

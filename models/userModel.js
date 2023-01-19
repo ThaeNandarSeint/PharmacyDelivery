@@ -38,17 +38,7 @@ const userSchema = new mongoose.Schema({
     phoneNumber: {
         type: String,
         default: ''
-    },
-
-    // roles
-    isSuperAdmin: {
-        type: Boolean,
-        default: false
-    },
-    isPharmacyTeam: {
-        type: Boolean,
-        default: false
-    },
+    }
 
 }, {
     timestamps: true

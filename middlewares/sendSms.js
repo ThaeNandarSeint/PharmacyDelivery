@@ -17,7 +17,7 @@ const sendSms = async (req, res, next) => {
     }
     
     // create otp 4 digit
-    const otp = `${Math.floor(1000 + Math.random() * 9000)}`
+    const otp = `${Math.floor(1000 + Math.random() * 9000)}` //0 to 1
 
     const from = "Vonage APIs"
     const to = phoneNumber
@@ -25,6 +25,7 @@ const sendSms = async (req, res, next) => {
 
     try{
         const result = await vonage.sms.send({to, from, text})
+        console.log(result);
         const { messageId } = result.messages[0]
         
         if(!messageId){

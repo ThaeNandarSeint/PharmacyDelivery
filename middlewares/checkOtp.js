@@ -31,13 +31,15 @@ const checkOtp = async (req, res, next) => {
             return res.status(400).json({ status: false, msg: "Wrong code. Please check your message again!" })
         }
 
-        const { isTwoFactor } = await Users.findById(userId)
+        const { isTwoFactor } = await Users.findById(userId) 
 
         if(!isTwoFactor){
             await Users.findByIdAndUpdate(userId, {
                 isTwoFactor: true,
                 phoneNumber: otpCode.phoneNumber
             })
+            await Otps.deleteMany({ otp: otpCode.otp })
+            return res.json({ status: true, msg: "Success!" })
         }       
 
         const access_token = createAccessToken({ id: userId })        

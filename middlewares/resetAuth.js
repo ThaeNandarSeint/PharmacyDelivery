@@ -6,11 +6,11 @@ const resetAuth = (req, res, next) => {
         const token = req.header('Authorization')
         
         if(!token){
-            return res.status(500).json({msg: "Invalid Authentication!"})
+            return res.status(500).json({msg: "Invalid Token!"})
         }
         jwt.verify(token, ACTIVATION_TOKEN_SECRET, (err, user) => {
             if(err){
-                return res.status(500).json({msg: "Invalid Authentication!"})
+                return res.status(500).json({msg: "Invalid Token!"})
             }
             req.user = user;
             next();

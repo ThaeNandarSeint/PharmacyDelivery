@@ -2,6 +2,9 @@ const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 
 const Users = require("../models/userModel");
+const Admins = require("../models/adminModel");
+const SuperVisors = require("../models/superVisorModel");
+const Operators = require("../models/operatorModel");
 
 const cloudinary = require('cloudinary');
 
@@ -45,7 +48,7 @@ const updatePassword = async (req, res, next) => {
 
 // update Me
 const updateMe = async (req, res, next) => {
-    try{
+    try {
         const { name, pictures } = req.body
         if (!name) {
             return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
@@ -103,16 +106,13 @@ const updateMe = async (req, res, next) => {
                 next(err)
             });
 
-    }catch(err){
+    } catch (err) {
         next(err);
         return res.status(500).json({ msg: err.message });
     }
 }
 
-// ----------------------- can do only Super Admin -------------------------------
-
-// add new user with role
-
+// ----------------------- can do only Admin -------------------------------
 
 // update user
 const updateUser = async (req, res, next) => {
@@ -121,9 +121,6 @@ const updateUser = async (req, res, next) => {
         if (!name && !superAdmin && !pharmacyTeam) {
             return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
         }
-
-        const isSuperAdmin = superAdmin === 'true' ? true : false
-        const isPharmacyTeam = pharmacyTeam === 'true' ? true : false
 
         const user = await Users.findById(req.params.id)
 
@@ -148,7 +145,7 @@ const updateUser = async (req, res, next) => {
 
             // update new picture in mongodb  
             await Users.findByIdAndUpdate(req.params.id, {
-                name, picPublicIds, pictureUrls, isSuperAdmin, isPharmacyTeam,
+                name, picPublicIds, pictureUrls
             })
             return res.status(200).json({ status: 200, msg: "Your profile has been successfully updated!" })
         }
@@ -168,7 +165,7 @@ const updateUser = async (req, res, next) => {
             .then(async () => {
                 // update new picture in mongodb
                 await Users.findByIdAndUpdate(req.params.id, {
-                    name, pictureUrls, picPublicIds, isSuperAdmin, isPharmacyTeam
+                    name, pictureUrls, picPublicIds
                 })
 
                 return res.status(200).json({ status: 200, msg: "Your profile has been successfully updated!" })
@@ -179,7 +176,6 @@ const updateUser = async (req, res, next) => {
 
     } catch (err) {
         next(err);
-        return res.status(500).json({ status: 500, msg: err.message })
     }
 }
 
@@ -224,6 +220,95 @@ const getAllUsers = async (req, res) => {
     }
 }
 
+// ----------------------- can do only Super Admin -------------------------------
+
+// add new user with role
+
+// remove user from role
+const deleteUserRole = async (req, res, next) => {
+    try{
+        const userId  = req.params.id
+        if (!userId) {
+            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
+        }
+
+        const admin = await Admins.findOne({ userId })
+        const superVisor = await SuperVisors.findOne({ userId })
+        const operator = await Operators.findOne({ userId })
+
+        async function deleteUserRole(userId){
+            if(admin){
+                await Admins.findOneAndDelete({ userId })
+            }
+            if(superVisor){
+                await SuperVisors.findOneAndDelete({ userId })
+            }
+            if(operator){
+                await Operators.findOneAndDelete({ userId })
+            }
+        }
+        
+        deleteUserRole(userId).then(() => { return res.json({ status: true, msg: "This user has been successfully removed from this role!" }) })
+
+    }catch(err){
+        next(err)
+    }
+}
+
+// update user role
+const updateUserRole = async (req, res, next) => {
+    try {
+        const { isAdmin, isSuperVisor, isOperator } = req.body
+        const userId  = req.params.id
+        if (!isAdmin && !isSuperVisor && !isOperator && !userId) {
+            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
+        }
+
+        const admin = await Admins.findOne({ userId })
+        const superVisor = await SuperVisors.findOne({ userId })
+        const operator = await Operators.findOne({ userId })
+
+        const newAuthorizer = {
+            userId
+        }
+
+        async function deleteUserRole(userId){
+            if(admin){
+                await Admins.findOneAndDelete({ userId })
+            }
+            if(superVisor){
+                await SuperVisors.findOneAndDelete({ userId })
+            }
+            if(operator){
+                await Operators.findOneAndDelete({ userId })
+            }
+        }     
+
+        async function addNewAuthorizer(newAuthorizer){
+            if(isAdmin){
+                const newAdmin = new Admins(newAuthorizer)
+                await newAdmin.save()
+                return res.status(200).json({ status: 200, msg: "The role for this user has been successfully updated!" })
+            }
+            if(isSuperVisor){
+                const newSuperVisor = new SuperVisors(newAuthorizer)
+                await newSuperVisor.save()
+                return res.status(200).json({ status: 200, msg: "The role for this user has been successfully updated!" })
+            }
+            if(isOperator){
+                const newOperator = new Operators(newAuthorizer)
+                await newOperator.save()
+                return res.status(200).json({ status: 200, msg: "The role for this user has been successfully updated!" })
+            }
+        }
+
+        deleteUserRole(userId).then(()=> addNewAuthorizer(newAuthorizer)) 
+
+    } catch (err) {
+        next(err)
+    }
+}
+
 // delete
 
 
@@ -235,5 +320,8 @@ module.exports = {
     searchUsers,
     getByUserId,
     getAllUsers,
-    updateUser
+    updateUser,
+    
+    updateUserRole,
+    deleteUserRole,
 };
