@@ -1,7 +1,9 @@
-const Users = require('../models/userModel')
-const Otps = require('../models/otpModel')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+
+// models
+const Users = require('../models/userModel')
+const Otps = require('../models/otpModel')
 
 // helpers
 const { createActivationToken, createAccessToken } = require('../helpers/createTokens')

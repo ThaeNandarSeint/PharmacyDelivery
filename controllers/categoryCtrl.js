@@ -6,6 +6,7 @@ cloudinary.config({
   api_secret: process.env.CLOUD_API_SECRET
 })
 
+// models
 const Categories = require("../models/categoryModel");
 
 // create

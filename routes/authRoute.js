@@ -1,3 +1,5 @@
+const router = require('express').Router()
+
 // controllers
 const { register, activateEmail, login, forgotPassword, resetPassword, logout, storeOtp } = require('../controllers/authCtrl');
 
@@ -13,8 +15,6 @@ const registerValidator = require('../validators/users/registerValidator');
 const resetPwValidator = require('../validators/users/resetPwValidator');
 const forgetPwValidator = require('../validators/users/forgetPwValidator');
 
-const router = require('express').Router()
-
 // routes
 router.post('/register', registerValidator, register)
 router.post('/activation', activateEmail)
@@ -24,7 +24,7 @@ router.post('/login', loginValidator, login, sendSms, storeOtp)
 router.post('/forgot', forgetPwValidator, forgotPassword)
 router.post('/reset', resetAuth, resetPwValidator, resetPassword)
 
-// 1st 2factor implementation
+// 2factor implementation
 router.post('/twoFactor', sendSms, storeOtp)
 router.post('/checkOtp', checkOtp)
 

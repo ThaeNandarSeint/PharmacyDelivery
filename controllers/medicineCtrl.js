@@ -6,6 +6,7 @@ cloudinary.config({
     api_secret: process.env.CLOUD_API_SECRET
 })
 
+// models
 const Medicines = require('../models/medicineModel')
 
 // create
@@ -40,7 +41,7 @@ const createMedicine = async (req, res, next) => {
     }
 }
 
-// update medicine
+// update
 const updateMedicine = async (req, res, next) => {
     try {
         const { categoryId, name, details, companyName, expiredAt, price, stocks, pictures } = req.body

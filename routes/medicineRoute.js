@@ -1,11 +1,12 @@
 const router = require('express').Router()
 
-const { createMedicine, updateMedicine, deleteMedicine, getAllMedicines, getByMedicineId, getMedicineByCategoryId, searchMedicines } = require('../controllers/medicineCtrl');
 // controllers
-
+const { createMedicine, updateMedicine, deleteMedicine, getAllMedicines, getByMedicineId, getMedicineByCategoryId, searchMedicines } = require('../controllers/medicineCtrl');
 
 // middlewares
 const { uploadImages } = require('../middlewares/uploadImages');
+
+//validation middlewares
 const { medicineValidator } = require('../validators/medicines/medicineValidator');
 
 // routes

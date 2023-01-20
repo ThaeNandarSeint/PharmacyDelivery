@@ -12,7 +12,7 @@ const categoryValidator = async (req, res, next) => {
 
   if (error) {
 
-    return res.status(406).json({ status: 406, msg: `Error in User Data : ${error.message}` })
+    next(error)
 
   } else {
 

@@ -1,4 +1,5 @@
 const router = require("express").Router();
+
 // controllers
 const { getAllCategories, createCategory, updateCategory, deleteCategory, getByCategoryId, searchCategories } = require("../controllers/categoryCtrl");
 

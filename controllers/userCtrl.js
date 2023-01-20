@@ -1,11 +1,6 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 
-const Users = require("../models/userModel");
-const Admins = require("../models/adminModel");
-const SuperVisors = require("../models/superVisorModel");
-const Operators = require("../models/operatorModel");
-
 const cloudinary = require('cloudinary');
 
 cloudinary.config({
@@ -13,6 +8,12 @@ cloudinary.config({
     api_key: process.env.CLOUD_API_KEY,
     api_secret: process.env.CLOUD_API_SECRET
 })
+
+// models
+const Users = require("../models/userModel");
+const Admins = require("../models/adminModel");
+const SuperVisors = require("../models/superVisorModel");
+const Operators = require("../models/operatorModel");
 
 // update My Password
 const updatePassword = async (req, res, next) => {
