@@ -1,5 +1,4 @@
 const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
 
 const cloudinary = require('cloudinary');
 
@@ -11,9 +10,7 @@ cloudinary.config({
 
 // models
 const Users = require("../models/userModel");
-const Admins = require("../models/adminModel");
-const SuperVisors = require("../models/superVisorModel");
-const Operators = require("../models/operatorModel");
+const Roles = require('../models/roleModel')
 
 // update My Password
 const updatePassword = async (req, res, next) => {
@@ -222,93 +219,35 @@ const getAllUsers = async (req, res) => {
 }
 
 // ----------------------- can do only Super Admin -------------------------------
-
-// add new user with role
-
-// remove user from role
-const deleteUserRole = async (req, res, next) => {
+// grant
+const grantRole = async (req, res, next) => {
     try{
-        const userId  = req.params.id
-        if (!userId) {
-            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
+        // validation testing
+        const { roleType } = req.body
+        if (!roleType) {
+            return res.status(400).json({ status: false, msg: "Some required information are missing!" });
         }
 
-        const admin = await Admins.findOne({ userId })
-        const superVisor = await SuperVisors.findOne({ userId })
-        const operator = await Operators.findOne({ userId })
+        const { roleId } = await Roles.findOne({ roleType })
 
-        async function deleteUserRole(userId){
-            if(admin){
-                await Admins.findOneAndDelete({ userId })
-            }
-            if(superVisor){
-                await SuperVisors.findOneAndDelete({ userId })
-            }
-            if(operator){
-                await Operators.findOneAndDelete({ userId })
-            }
-        }
-        
-        deleteUserRole(userId).then(() => { return res.json({ status: true, msg: "This user has been successfully removed from this role!" }) })
+        await Users.findByIdAndUpdate(req.params.id, { role: roleId })
+
+        return res.status(200).json({ status: 200, msg: `This user has been successfully granted as ${roleType}` })
 
     }catch(err){
         next(err)
     }
 }
 
+// add new user with role
+
+// remove user from role
+
+
 // update user role
-const updateUserRole = async (req, res, next) => {
-    try {
-        const { isAdmin, isSuperVisor, isOperator } = req.body
-        const userId  = req.params.id
-        if (!isAdmin && !isSuperVisor && !isOperator && !userId) {
-            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
-        }
 
-        const admin = await Admins.findOne({ userId })
-        const superVisor = await SuperVisors.findOne({ userId })
-        const operator = await Operators.findOne({ userId })
 
-        const newAuthorizer = {
-            userId
-        }
 
-        async function deleteUserRole(userId){
-            if(admin){
-                await Admins.findOneAndDelete({ userId })
-            }
-            if(superVisor){
-                await SuperVisors.findOneAndDelete({ userId })
-            }
-            if(operator){
-                await Operators.findOneAndDelete({ userId })
-            }
-        }     
-
-        async function addNewAuthorizer(newAuthorizer){
-            if(isAdmin){
-                const newAdmin = new Admins(newAuthorizer)
-                await newAdmin.save()
-                return res.status(200).json({ status: 200, msg: "The role for this user has been successfully updated!" })
-            }
-            if(isSuperVisor){
-                const newSuperVisor = new SuperVisors(newAuthorizer)
-                await newSuperVisor.save()
-                return res.status(200).json({ status: 200, msg: "The role for this user has been successfully updated!" })
-            }
-            if(isOperator){
-                const newOperator = new Operators(newAuthorizer)
-                await newOperator.save()
-                return res.status(200).json({ status: 200, msg: "The role for this user has been successfully updated!" })
-            }
-        }
-
-        deleteUserRole(userId).then(()=> addNewAuthorizer(newAuthorizer)) 
-
-    } catch (err) {
-        next(err)
-    }
-}
 
 // delete
 
@@ -322,7 +261,6 @@ module.exports = {
     getByUserId,
     getAllUsers,
     updateUser,
-    
-    updateUserRole,
-    deleteUserRole,
+
+    grantRole
 };

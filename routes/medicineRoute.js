@@ -5,14 +5,15 @@ const { createMedicine, updateMedicine, deleteMedicine, getAllMedicines, getByMe
 
 // middlewares
 const { uploadImages } = require('../middlewares/uploadImages');
+const { roleAuth } = require('../middlewares/roleAuth');
 
 //validation middlewares
 const { medicineValidator } = require('../validators/medicines/medicineValidator');
 
 // routes
-router.post('/', medicineValidator, uploadImages, createMedicine)
-router.put('/:id', medicineValidator, uploadImages, updateMedicine)
-router.delete('/:id', deleteMedicine)
+router.post('/', roleAuth("Superadmin", "Admin", "Supervisor"), medicineValidator, uploadImages, createMedicine)
+router.put('/:id', roleAuth("Superadmin", "Admin", "Supervisor"), medicineValidator, uploadImages, updateMedicine)
+router.delete('/:id', roleAuth("Superadmin", "Admin", "Supervisor"), deleteMedicine)
 
 // read
 router.get('/', getAllMedicines)

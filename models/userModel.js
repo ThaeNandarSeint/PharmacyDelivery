@@ -38,6 +38,12 @@ const userSchema = new mongoose.Schema({
     phoneNumber: {
         type: String,
         default: ''
+    },
+
+    // role
+    roleType: {
+        type: String,
+        default: ''
     }
 
 }, {

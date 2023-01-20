@@ -16,7 +16,7 @@ const medicineValidator = async (req, res, next) => {
 	const { error } = validation.validate(payload);
 	if (error) {
 
-		next(error)
+		return res.status(406).json({ status: 406, msg: error.message });
 
 	} else {
 		req.folderName = `PharmacyDelivery/Medicines/${req.body.name}`
