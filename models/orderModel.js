@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema({
+    orderId: {
+        type: String,
+        required: [true, "Please enter order id!"],
+    },
 
     medicineId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -12,11 +16,6 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users',
         required: true,
-    },
-
-    orderCount: {
-        type: Number,
-        required: [true, "Please enter order counts!"],
     },
 
     isPending: {
@@ -36,7 +35,6 @@ const orderSchema = new mongoose.Schema({
     cancelBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users',
-        required: true,
     }
 
 }, {

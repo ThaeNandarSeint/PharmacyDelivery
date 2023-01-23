@@ -1,4 +1,4 @@
-const { createOrder, getAllOrders, getByOrderId, getOrderByMedicineId, getOrderByUserId, getAllPendingOrders, getAllDeliverOrders, getAllCancelOrders, approveOrder, cancelOrder, getOrdersByDateRange } = require('../controllers/orderCtrl');
+const { createOrder, getAllOrders, getByOrderId, getOrderByMedicineId, getOrderByUserId, getAllPendingOrders, getAllDeliverOrders, getAllCancelOrders, approveOrder, cancelOrder } = require('../controllers/orderCtrl');
 const { orderValidator } = require('../validators/orders/orderValidator');
 
 const router = require('express').Router()

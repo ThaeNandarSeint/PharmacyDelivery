@@ -1,6 +1,10 @@
 const mongoose = require('mongoose')
 
 const medicineSchema = new mongoose.Schema({
+    medicineId: {
+        type: String,
+        required: [true, "Please enter medicine id!"],
+    },
     name: {
         type: String,
         required: [true, "Please enter medicine name!"],

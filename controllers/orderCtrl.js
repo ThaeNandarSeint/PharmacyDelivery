@@ -1,47 +1,81 @@
+const Users = require('../models/userModel')
 const Orders = require('../models/orderModel')
 const Medicines = require('../models/medicineModel')
 
+// services
+const sendMail = require('../services/sendMail')
+
 // create
 const createOrder = async (req, res, next) => {
-    try{
-
-        const { userId, medicineId, orderCount } = req.body
-        if(!userId || !medicineId || !orderCount){
+    try {
+        const userId = req.user.id
+        const { medicineId, orderCount } = req.body
+        if (!userId || !medicineId || !orderCount) {
             return res.status(400).json({ status: false, msg: "Some required information are missing!" })
         }
 
         const { stocks } = await Medicines.findById(medicineId)
-        if(!stocks){
+        if (!stocks) {
             return res.status(410).json({ status: 410, msg: "Out of stocks!" })
         }
 
-        if(orderCount > stocks){
+        if (orderCount > stocks) {
             return res.status(410).json({ status: 410, msg: `Can order less than ${stocks} products!` })
+        }        
+
+        let newOrderId;
+
+        const documentCount = await Orders.countDocuments()
+        newOrderId = "O_" + (documentCount + 1)
+
+        const lastOrder = await Orders.findOne().sort({ createdAt: -1 })
+
+        if (lastOrder) {
+            const { orderId } = lastOrder
+            const charArray = orderId.split("")
+            const newCharArray = charArray.filter((char) => char !== 'O' && char !== "_")
+            const oldOrderId = newCharArray.toString()
+
+            newOrderId = "O_" + ((oldOrderId * 1) + 1)
         }
 
+        const { email } = await Users.findById(userId)
+
+        // store new order in mongodb
         const newStocks = stocks - orderCount
 
-        // // store new order in mongodb
-        const newOrder = new Orders({
-            userId, medicineId, orderCount, isPending: true
-        })
-        const savedOrder = await newOrder.save()
+        if (newOrderId) {
+            const newOrder = new Orders({
+                orderId: newOrderId, userId, medicineId, orderCount, isPending: true
+            })
+            const savedOrder = await newOrder.save()
 
-        await Medicines.findByIdAndUpdate(medicineId, { stocks: newStocks })
+            await Medicines.findByIdAndUpdate(medicineId, { stocks: newStocks })              
 
-        return res.status(201).json({ status: 201, orderId: savedOrder._id, msg: "New order has been successfully created!" })
+            const html = `
+            <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
+                <h2 style="text-align: center; text-transform: uppercase;color: #009688;">Welcome From Pharmacy Delivery App</h2>
+                <p>Congratulations! Order Confirmed!</span>
+                </p>
+            </div>
+            `
 
-    }catch(err){
+            sendMail(email, html)
+
+            return res.status(201).json({ status: 201, orderId: savedOrder._id, msg: "New order has been successfully created!" })
+        }
+
+    } catch (err) {
         next(err)
     }
 }
 
 // approve order -> deliver stage
 const approveOrder = async (req, res, next) => {
-    try{
+    try {
 
         const { isCancel } = await Orders.findById(req.params.id)
-        if(isCancel){
+        if (isCancel) {
             return res.status(400).json({ status: 400, msg: "This order has been already cancelled!" })
         }
 
@@ -49,44 +83,61 @@ const approveOrder = async (req, res, next) => {
 
         return res.status(200).json({ status: 200, msg: "This order has been successfully approved!" })
 
-    }catch(err){
+    } catch (err) {
         next(err)
     }
 }
 
 // cancel order
 const cancelOrder = async (req, res, next) => {
-    try{
+    try {
         const userId = req.user.id
 
         const { isDeliver } = await Orders.findById(req.params.id)
-        const { isCancel } = await Orders.findById(req.params.id)        
+        const { isCancel } = await Orders.findById(req.params.id)
 
-        if(isCancel){
+        if (isCancel) {
             return res.status(400).json({ status: 400, msg: "This order has been already cancelled!" })
         }
-        if(isDeliver){
+        if (isDeliver) {
             return res.status(406).json({ status: 406, msg: "Not allowed to cancel. This order is on deliver stage!" })
-        } 
+        }
 
         const { orderCount } = await Orders.findById(req.params.id)
         const { medicineId } = await Orders.findById(req.params.id)
 
         const { stocks } = await Medicines.findById(medicineId)
         const newStocks = stocks + orderCount
-        
+
         await Medicines.findByIdAndUpdate(medicineId, { stocks: newStocks })
 
-        await Orders.findByIdAndUpdate(req.params.id, { isPending: false, isDeliver: false, isCancel: true, orderCount: 0, cancelBy: userId })  
-        
+        await Orders.findByIdAndUpdate(req.params.id, { isPending: false, isDeliver: false, isCancel: true, orderCount: 0, cancelBy: userId })
+
         return res.status(200).json({ status: 200, msg: "This order has been successfully cancelled!" })
+
+    } catch (err) {
+        next(err)
+    }
+}
+
+// update order status -> cannot process
+const changeToPending = async (req, res, next) => {
+    try{       
+
+        const userId = req.user.id
+
+        const { isCancel } = await Orders.findById(req.params.id)
+
+        if (isCancel) {
+            return res.status(400).json({ status: 400, msg: "This order has been already cancelled!" })
+        }
+
+        
 
     }catch(err){
         next(err)
     }
 }
-
-// update
 
 // delete
 
@@ -110,8 +161,8 @@ const getOrderByMedicineId = async (req, res, next) => {
         const { page = 1, limit = 10 } = req.query
 
         const { start, end } = req.query //2023-01-01
-        if(!start || !end){
-            
+        if (!start || !end) {
+
             const orders = await Orders.find({ medicineId: req.params.id }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
             return res.status(200).json({ status: 200, orders })
@@ -122,8 +173,8 @@ const getOrderByMedicineId = async (req, res, next) => {
 
         const orders = await Orders.find({
             createdAt: {
-               "$gte": startDate,
-               "$lt": endDate
+                "$gte": startDate,
+                "$lt": endDate
             }
         }, { medicineId: req.params.id }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
@@ -140,8 +191,8 @@ const getOrderByUserId = async (req, res, next) => {
         const { page = 1, limit = 10 } = req.query
 
         const { start, end } = req.query //2023-01-01
-        if(!start || !end){
-            
+        if (!start || !end) {
+
             const orders = await Orders.find({ userId: req.params.id }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
             return res.status(200).json({ status: 200, orders })
@@ -152,8 +203,8 @@ const getOrderByUserId = async (req, res, next) => {
 
         const orders = await Orders.find({
             createdAt: {
-               "$gte": startDate,
-               "$lt": endDate
+                "$gte": startDate,
+                "$lt": endDate
             }
         }, { userId: req.params.id }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
@@ -170,8 +221,8 @@ const getAllOrders = async (req, res) => {
         const { page = 1, limit = 10 } = req.query
 
         const { start, end } = req.query //2023-01-01
-        if(!start || !end){
-            
+        if (!start || !end) {
+
             const orders = await Orders.find().limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
             return res.status(200).json({ status: 200, orders })
@@ -182,8 +233,8 @@ const getAllOrders = async (req, res) => {
 
         const orders = await Orders.find({
             createdAt: {
-               "$gte": startDate,
-               "$lt": endDate
+                "$gte": startDate,
+                "$lt": endDate
             }
         }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
@@ -201,8 +252,8 @@ const getAllPendingOrders = async (req, res, next) => {
         const { page = 1, limit = 10 } = req.query
 
         const { start, end } = req.query //2023-01-01
-        if(!start || !end){
-            
+        if (!start || !end) {
+
             const orders = await Orders.find({ isPending: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
             return res.status(200).json({ status: 200, orders })
@@ -213,8 +264,8 @@ const getAllPendingOrders = async (req, res, next) => {
 
         const orders = await Orders.find({
             createdAt: {
-               "$gte": startDate,
-               "$lt": endDate
+                "$gte": startDate,
+                "$lt": endDate
             }
         }, { isPending: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
@@ -231,8 +282,8 @@ const getAllDeliverOrders = async (req, res, next) => {
         const { page = 1, limit = 10 } = req.query
 
         const { start, end } = req.query //2023-01-01
-        if(!start || !end){
-            
+        if (!start || !end) {
+
             const orders = await Orders.find({ isDeliver: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
             return res.status(200).json({ status: 200, orders })
@@ -243,8 +294,8 @@ const getAllDeliverOrders = async (req, res, next) => {
 
         const orders = await Orders.find({
             createdAt: {
-               "$gte": startDate,
-               "$lt": endDate
+                "$gte": startDate,
+                "$lt": endDate
             }
         }, { isDeliver: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
@@ -261,8 +312,8 @@ const getAllCancelOrders = async (req, res, next) => {
         const { page = 1, limit = 10 } = req.query
 
         const { start, end } = req.query //2023-01-01
-        if(!start || !end){
-            
+        if (!start || !end) {
+
             const orders = await Orders.find({ isCancel: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
             return res.status(200).json({ status: 200, orders })
@@ -273,8 +324,8 @@ const getAllCancelOrders = async (req, res, next) => {
 
         const orders = await Orders.find({
             createdAt: {
-               "$gte": startDate,
-               "$lt": endDate
+                "$gte": startDate,
+                "$lt": endDate
             }
         }, { isCancel: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 

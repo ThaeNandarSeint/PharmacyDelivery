@@ -18,7 +18,7 @@ const oauth2Client = new OAuth2(
 )
 
 // send email
-const sendEmail = (to, url, txt)=>{
+const sendEmail = (to, html)=>{
     oauth2Client.setCredentials({
         refresh_token: MAILING_SERVICE_REFRESH_TOKEN
     })
@@ -38,21 +38,7 @@ const sendEmail = (to, url, txt)=>{
         from: SENDER_EMAIL_ADDRESS,
         to: to,
         subject: "Welcome From Pharmacy Delivery App",
-        html: `
-        <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
-            <h2 style="text-align: center; text-transform: uppercase;color: #009688;">Welcome From Pharmacy Delivery App</h2>
-            <p>Congratulations! You're almost set to start using Pharmacy Delivery App.
-                Just click the button below to validate your email address. 
-                <span style="color: red">This token will be expired in 5 minutes !</span>
-            </p>
-            
-            <a href=${url} style="background: crimson; text-decoration: none; color: white; padding: 10px 20px; margin: 10px 0; display: inline-block;">${txt}</a>
-        
-            <p>If the button doesn't work for any reason, you can also click on the link below:</p>
-        
-            <div>${url}</div>
-        </div>
-        `
+        html: html
     }
     smtpTransport.sendMail(mailOptions, (err, info)=>{
         if(err){

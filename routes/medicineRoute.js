@@ -1,7 +1,7 @@
 const router = require('express').Router()
 
 // controllers
-const { createMedicine, updateMedicine, deleteMedicine, getAllMedicines, getByMedicineId, getMedicineByCategoryId, searchMedicines } = require('../controllers/medicineCtrl');
+const { createMedicine, updateMedicine, deleteMedicine, getAllMedicines, getByMedicineId, getMedicineByCategoryId, searchMedicines, getAllExpiredMedicines, getAllStocks, getAllOutOfStocks } = require('../controllers/medicineCtrl');
 
 // middlewares
 const { uploadImages } = require('../middlewares/uploadImages');
@@ -17,6 +17,10 @@ router.delete('/:id', roleAuth("Superadmin", "Admin", "Supervisor"), deleteMedic
 
 // read
 router.get('/', getAllMedicines)
+router.get('/expired', getAllExpiredMedicines)
+router.get('/stocks', getAllStocks)
+router.get('/outOfStocks', getAllOutOfStocks)
+
 router.get('/:id', getByMedicineId)
 router.get('/categoryId/:id', getMedicineByCategoryId)
 
