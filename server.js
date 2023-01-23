@@ -31,6 +31,8 @@ const authRoute = require('./routes/authRoute')
 const userRoute = require('./routes/userRoute');
 const medicineRoute = require('./routes/medicineRoute');
 const categoryRoute = require("./routes/categoryRoute");
+const orderRoute = require("./routes/orderRoute");
+// 
 const roleRoute = require("./routes/roleRoute");
 const permissionRoute = require("./routes/permissionRoute");
 
@@ -41,6 +43,8 @@ app.use('/api/auth', authRoute)
 app.use('/api/users', userAuth, userRoute)
 app.use('/api/medicines', userAuth, medicineRoute)
 app.use("/api/categories", userAuth, categoryRoute);
+app.use("/api/orders", userAuth, orderRoute);
+// 
 app.use("/api/roles", userAuth, roleRoute);
 app.use("/api/permissions", userAuth, permissionRoute);
 
