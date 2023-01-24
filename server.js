@@ -48,6 +48,42 @@ app.use("/api/orders", userAuth, orderRoute);
 app.use("/api/roles", userAuth, roleRoute);
 app.use("/api/permissions", userAuth, permissionRoute);
 
+// socket setup
+const socket = require('socket.io')
+const CLIENT_URL = process.env.CLIENT_URL
+const io = socket(server, {
+  cors: {
+    origin: `${CLIENT_URL}`,
+    credentials: true
+  }
+})
+
+let activeUsers = []
+io.on('connection', (socket) => {
+  // add new user
+  socket.on('new-user-add', (newUserId) => {
+    // if user is not added
+    if (!activeUsers.some((user) => user.userId === newUserId)) {
+      activeUsers.push({
+        userId: newUserId,
+        socketId: socket.id
+      })
+    }
+    io.emit('get-users', activeUsers)
+  })
+  socket.on('disconnect', () => {
+    activeUsers = activeUsers.filter((user) => user.socketId !== socket.id)
+    io.emit('get-users', activeUsers)
+  })
+  socket.on('send-msg', (data) => {
+    const receiverId = data.to;
+    const user = activeUsers.find((user) => user.userId === receiverId)
+    if (user) {
+      socket.to(user.socketId).emit('msg-receive', data.message)
+    }
+  })
+})
+
 // handle errors
 app.use(morgan("dev"));
 app.use((req, res, next) => {
