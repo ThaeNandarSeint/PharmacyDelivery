@@ -10,14 +10,15 @@ cloudinary.config({
 const Categories = require("../models/categoryModel");
 
 // create
-const createCategory = async (req, res) => {
+const createCategory = async (req, res, next) => {
   try {
-    // validation
     const { title, pictures } = req.body;
+
     if (!title || !pictures) {
       return res.status(400).json({ status: false, msg: "Some required information are missing!" });
     }
-    // unique testing
+
+    // unique validation
     const category = await Categories.findOne({ title });
     if (category) {
       return res.status(400).json({ status: 400, msg: "This category already exist!" });
@@ -30,27 +31,44 @@ const createCategory = async (req, res) => {
       const categoryPicture = pictures[i];
       pictureUrls.push(categoryPicture.secure_url);
       picPublicIds.push(categoryPicture.public_id);
+    }    
+
+    let newCategoryId;
+
+    const documentCount = await Categories.countDocuments()
+    newCategoryId = "C_" + (documentCount + 1)
+
+    const lastCategory = await Categories.findOne().sort({ createdAt: -1 })
+
+    if (lastCategory) {
+      const { categoryId } = lastCategory
+      const charArray = categoryId.split("")
+      const newCharArray = charArray.filter((char) => char !== 'C' && char !== "_")
+      const oldCategoryId = newCharArray.toString()
+
+      newCategoryId = "C_" + ((oldCategoryId * 1) + 1)
+    }             
+
+    // store new medicine in mongodb
+    if (newCategoryId) {
+      const newCategory = new Categories({
+        categoryId: newCategoryId, title, pictureUrls, picPublicIds,
+      });
+      const savedCategory = await newCategory.save();
+      return res.status(201).json({
+        status: 201,
+        categoryId: savedCategory._id,
+        msg: "New Category has been successfully uploaded!",
+      });
     }
 
-    // // store new category in mongodb
-    const newCategory = new Categories({
-      title,
-      pictureUrls,
-      picPublicIds,
-    });
-    const savedCategory = await newCategory.save();
-    return res.status(201).json({
-      status: 201,
-      categoryId: savedCategory._id,
-      msg: "New Category has been successfully uploaded!",
-    });
   } catch (err) {
     next();
   }
 };
 
 // update
-const updateCategory = async (req, res) => {
+const updateCategory = async (req, res, next) => {
   try {
     const { title, pictures } = req.body;
 
@@ -140,7 +158,7 @@ const updateCategory = async (req, res) => {
 };
 
 // delete
-const deleteCategory = async (req, res) => {
+const deleteCategory = async (req, res, next) => {
   try {
     const { picPublicIds } = await Categories.findById(req.params.id);
 

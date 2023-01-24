@@ -180,6 +180,23 @@ const updateMedicine = async (req, res, next) => {
   }
 };
 
+// update stocks
+const updateStocks = async (req, res, next) => {
+  try {
+    const { stocks } = req.body;
+
+    await Medicines.findByIdAndUpdate(req.params.id, {
+      stocks,
+    });
+    return res.json({
+      status: true,
+      msg: "Stocks have been successfully updated!",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // delete
 const deleteMedicine = async (req, res, next) => {
   try {
@@ -217,6 +234,8 @@ const deleteMedicine = async (req, res, next) => {
     next(err);
   }
 };
+
+// read -----------------------------------------------
 
 // get medicine by medicine id
 const getByMedicineId = async (req, res, next) => {
@@ -279,31 +298,106 @@ const getAllMedicines = async (req, res) => {
   }
 };
 
-//instock medicines
-const getAllStocks = async (req, res, next) => {
+// get all expired medicines
+const getAllExpiredMedicines = async (req, res, next) => {
   try {
-    const medicines = await Medicines.find({ stocks: { $ne: 0 } });
-    {
-      return res.status(200).json({
-        status: true,
-        data: medicines,
-      });
+    const { page = 1, limit = 10 } = req.query;
+
+    const { start, end } = req.query; //2023-01-01
+    if (!start || !end) {
+      return res
+        .status(400)
+        .json({ status: false, msg: "Some required information are missing!" });
     }
+
+    const startDate = new Date(start).toISOString();
+    const endDate = new Date(end).toISOString();
+
+    const medicines = await Medicines.find({
+      expiredDate: {
+        $gte: startDate,
+        $lt: endDate,
+      },
+    })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ status: 200, medicines });
   } catch (err) {
     next(err);
   }
 };
 
-//outofstock medicines
-const getOutOfStocks = async (req, res, next) => {
+// get all stocks
+const getAllStocks = async (req, res, next) => {
   try {
-    const medicines = await Medicines.find({ stocks: { $eq: 0 } });
-    {
-      return res.status(404).json({
-        status: false,
-        data: medicines,
-      });
+    const { page = 1, limit = 10 } = req.query;
+
+    const { start, end } = req.query; //2023-01-01
+    if (!start || !end) {
+      const medicines = await Medicines.find({ stocks: { $ne: 0 } })
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .sort({ createdAt: -1 });
+
+      return res.status(200).json({ status: 200, medicines });
     }
+
+    const startDate = new Date(start).toISOString();
+    const endDate = new Date(end).toISOString();
+
+    const medicines = await Medicines.find(
+      { stocks: { $ne: 0 } },
+      {
+        createdAt: {
+          $gte: startDate,
+          $lt: endDate,
+        },
+      }
+    )
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ status: 200, medicines });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// get all out of stocks
+const getAllOutOfStocks = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+
+    const { start, end } = req.query; //2023-01-01
+    if (!start || !end) {
+      const medicines = await Medicines.find({ stocks: { $eq: 0 } })
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .sort({ createdAt: -1 });
+
+      return res.status(200).json({ status: 200, medicines });
+    }
+
+    const startDate = new Date(start).toISOString();
+    const endDate = new Date(end).toISOString();
+
+    const medicines = await Medicines.find(
+      { stocks: { $eq: 0 } },
+      {
+        createdAt: {
+          $gte: startDate,
+          $lt: endDate,
+        },
+      }
+    )
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ status: 200, medicines });
   } catch (err) {
     next(err);
   }
@@ -319,5 +413,6 @@ module.exports = {
   getByMedicineId,
   getMedicineByCategoryId,
   getAllStocks,
-  getOutOfStocks,
+  getAllOutOfStocks,
+  getAllExpiredMedicines,
 };

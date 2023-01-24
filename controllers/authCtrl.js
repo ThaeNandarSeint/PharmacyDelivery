@@ -37,7 +37,25 @@ const register = async (req, res, next) => {
         const activation_token = createActivationToken(newUser)
 
         const url = `${CLIENT_URL}/user/activate/${activation_token}`
-        sendMail(email, url, "Verify your email address")
+        const txt = "Verify your email address"
+
+        const html = `
+        <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
+            <h2 style="text-align: center; text-transform: uppercase;color: #009688;">Welcome From Pharmacy Delivery App</h2>
+            <p>Congratulations! You're almost set to start using Pharmacy Delivery App.
+                Just click the button below to validate your email address. 
+                <span style="color: red">This token will be expired in 5 minutes !</span>
+            </p>
+            
+            <a href=${url} style="background: crimson; text-decoration: none; color: white; padding: 10px 20px; margin: 10px 0; display: inline-block;">${txt}</a>
+        
+            <p>If the button doesn't work for any reason, you can also click on the link below:</p>
+        
+            <div>${url}</div>
+        </div>
+        `
+
+        sendMail(email, html)
 
         return res.status(200).json({ status: 200, msg: "Register Success! Please activate your email to start" })
 
@@ -64,21 +82,40 @@ const activateEmail = async (req, res, next) => {
                 return res.status(400).json({ status: 400, msg: "This email already exists!" })
             }
 
-            // // create user model & save in mongodb
-            const newUser = new Users({
-                name,
-                email,
-                password,
-                pictureUrls: ["https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"],
-                picPublicIds: 'PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
-            })
+            let newUserId;
 
-            const savedUser = await newUser.save()
+            const documentCount = await Users.countDocuments()
+            newUserId = "U_" + (documentCount + 1)
 
-            const access_token = createAccessToken({ id: savedUser._id })
-            res.cookie('access_token', access_token, cookieOptions)
+            const lastUser = await Users.findOne().sort({ createdAt: -1 })
 
-            return res.status(201).json({ status: 201, user: savedUser, msg: "Account has been created!" })
+            if (lastUser) {
+                const { userId } = lastUser
+                const charArray = userId.split("")
+                const newCharArray = charArray.filter((char) => char !== 'U' && char !== "_")
+                const oldUserId = newCharArray.toString()
+
+                newUserId = "U_" + ((oldUserId * 1) + 1)
+            }
+
+            // create user model & save in mongodb
+            if (newUserId) {
+                const newUser = new Users({
+                    userId: newUserId,
+                    name,
+                    email,
+                    password,
+                    pictureUrls: ["https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"],
+                    picPublicIds: 'PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
+                })
+
+                const savedUser = await newUser.save()
+
+                const access_token = createAccessToken({ id: savedUser._id })
+                res.cookie('access_token', access_token, cookieOptions)
+
+                return res.status(201).json({ status: 201, user: savedUser, msg: "Account has been created!" })
+            }
         })
 
     } catch (err) {
@@ -130,7 +167,26 @@ const forgotPassword = async (req, res, next) => {
 
         const activation_token = createActivationToken({ id: user._id })
         const url = `${CLIENT_URL}/user/reset/${activation_token}`
-        sendMail(email, url, "Reset your password")
+
+        const txt = "Reset your password"
+
+        const html = `
+        <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
+            <h2 style="text-align: center; text-transform: uppercase;color: #009688;">Welcome From Pharmacy Delivery App</h2>
+            <p>Congratulations! You're almost set to start using Pharmacy Delivery App.
+                Just click the button below to validate your email address. 
+                <span style="color: red">This token will be expired in 5 minutes !</span>
+            </p>
+            
+            <a href=${url} style="background: crimson; text-decoration: none; color: white; padding: 10px 20px; margin: 10px 0; display: inline-block;">${txt}</a>
+        
+            <p>If the button doesn't work for any reason, you can also click on the link below:</p>
+        
+            <div>${url}</div>
+        </div>
+        `
+
+        sendMail(email, html)
 
         return res.status(200).json({ status: 200, msg: "Already resend your password, please check your email !" })
 

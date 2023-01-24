@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 
 const categorySchema = new mongoose.Schema({
+  categoryId: {
+    type: String,
+    required: [true, "Please enter category id!"],
+  },
   title: {
     type: String,
     required: [true, "Please enter the category of the medicine"],

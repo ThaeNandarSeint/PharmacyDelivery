@@ -9,8 +9,9 @@ const {
   getByMedicineId,
   getMedicineByCategoryId,
   searchMedicines,
+  getAllExpiredMedicines,
   getAllStocks,
-  getOutOfStocks,
+  getAllOutOfStocks,
 } = require("../controllers/medicineCtrl");
 
 // middlewares
@@ -45,8 +46,10 @@ router.delete(
 
 // read
 router.get("/", getAllMedicines);
+router.get("/expired", getAllExpiredMedicines);
 router.get("/stocks", getAllStocks);
-router.get("/outofstocks", getOutOfStocks);
+router.get("/outOfStocks", getAllOutOfStocks);
+
 router.get("/:id", getByMedicineId);
 router.get("/categoryId/:id", getMedicineByCategoryId);
 
