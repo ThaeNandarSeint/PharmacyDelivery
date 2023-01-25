@@ -251,16 +251,40 @@ const getByMedicineId = async (req, res, next) => {
 // search medicines
 const searchMedicines = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { name = "", title = "" } = req.query;
+    //give empty string to not result undefined
 
-    const medicines = await Medicines.find({
-      $or: [{ name: { $regex: req.params.key / i } }],
-    })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+    const categoryLookup = {
+      from: "categories",
+      localField: "categoryId",
+      foreignField: "_id",
+      as: "categoryDetails",
+    };
 
-    return res.status(200).json({ status: 200, medicines });
+    const medicines = await Medicines.aggregate([
+      {
+        $lookup: categoryLookup,
+      },
+
+      {
+        $unwind: "$categoryDetails",
+      },
+
+      {
+        $match: {
+          $or: [
+            { name: { $regex: name } },
+            { "categoryDetails.title": { $regex: title } },
+          ],
+        },
+      },
+    ]);
+    res.status(200).json({
+      status: "success",
+      data: {
+        medicines,
+      },
+    });
   } catch (err) {
     next(err);
   }
@@ -305,9 +329,10 @@ const getAllExpiredMedicines = async (req, res, next) => {
 
     const { start, end } = req.query; //2023-01-01
     if (!start || !end) {
-      return res
-        .status(400)
-        .json({ status: false, msg: "Some required information are missing!" });
+      return res.status(400).json({
+        status: false,
+        msg: "Some required information are missing!",
+      });
     }
 
     const startDate = new Date(start).toISOString();

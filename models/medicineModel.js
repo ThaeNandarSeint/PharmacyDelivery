@@ -1,58 +1,61 @@
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
-const medicineSchema = new mongoose.Schema({
+const medicineSchema = new mongoose.Schema(
+  {
     medicineId: {
-        type: String,
-        required: [true, "Please enter medicine id!"],
+      type: String,
+      required: [true, "Please enter medicine id!"],
     },
     name: {
-        type: String,
-        required: [true, "Please enter medicine name!"],
-        trim: true
+      type: String,
+      required: [true, "Please enter medicine name!"],
+      trim: true,
     },
     details: {
-        type: String,
-        required: [true, "Please enter medicine details!"],
-        trim: true
+      type: String,
+      required: [true, "Please enter medicine details!"],
+      trim: true,
     },
     companyName: {
-        type: String,
-        required: [true, "Please enter medicine company!"],
-        trim: true
+      type: String,
+      required: [true, "Please enter medicine company!"],
+      trim: true,
     },
     expiredDate: {
-        type: Date,
-        required: [true, "Please enter medicine expired date!"],
+      type: Date,
+      required: [true, "Please enter medicine expired date!"],
     },
     price: {
-        type: Number,
-        required: [true, "Please enter medicine price!"],
+      type: Number,
+      required: [true, "Please enter medicine price!"],
     },
     stocks: {
-        type: Number,
-        required: [true, "Please enter medicine stocks!"],
+      type: Number,
+      required: [true, "Please enter medicine stocks!"],
     },
     categoryId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Categories',
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Categories",
+      required: true,
     },
 
     pictureUrls: [
-        {
-            type: String,
-            default: 'https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
-        }
-    ],    
-    picPublicIds: [
-        {
-            type: String,
-            default: 'PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
-        }
+      {
+        type: String,
+        default:
+          "https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp",
+      },
     ],
+    picPublicIds: [
+      {
+        type: String,
+        default: "PharmacyDelivery/Users/default-profile-picture_nop9jb.webp",
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
 
-}, {
-    timestamps: true
-})
-
-module.exports = mongoose.model('Medicines', medicineSchema)
+module.exports = mongoose.model("Medicines", medicineSchema);
