@@ -1,6 +1,7 @@
 const Users = require('../models/userModel')
 const Orders = require('../models/orderModel')
 const Medicines = require('../models/medicineModel')
+const Categories = require('../models/categoryModel')
 
 // services
 const sendMail = require('../services/sendMail')
@@ -9,19 +10,27 @@ const sendMail = require('../services/sendMail')
 const createOrder = async (req, res, next) => {
     try {
         const userId = req.user.id
-        const { medicineId, orderCount } = req.body
-        if (!userId || !medicineId || !orderCount) {
+
+        const { medicines } = req.body
+        if (!userId || !medicines) {
             return res.status(400).json({ status: false, msg: "Some required information are missing!" })
         }
 
-        const { stocks } = await Medicines.findById(medicineId)
-        if (!stocks) {
-            return res.status(410).json({ status: 410, msg: "Out of stocks!" })
-        }
+        let uploadPromises = []
+        for (let i = 0; i < medicines.length; i++) {
+            const { medicineId, orderCount } = medicines[i];
 
-        if (orderCount > stocks) {
-            return res.status(410).json({ status: 410, msg: `Can order less than ${stocks} products!` })
-        }        
+            const { stocks, name } = await Medicines.findById(medicineId)
+            if (!stocks) {
+                return res.status(410).json({ status: 410, msg: `This medicine ${name} is out of stocks!` })
+            }
+            if (orderCount > stocks) {
+                return res.status(410).json({ status: 410, msg: `This medicine ${name} can be ordered less than ${stocks}!` })
+            }  
+            const newStock = stocks - orderCount
+
+            uploadPromises.push(Medicines.findByIdAndUpdate(medicineId, { stocks: newStock })) 
+        } 
 
         let newOrderId;
 
@@ -39,18 +48,14 @@ const createOrder = async (req, res, next) => {
             newOrderId = "O_" + ((oldOrderId * 1) + 1)
         }
 
-        const { email } = await Users.findById(userId)
-
-        // store new order in mongodb
-        const newStocks = stocks - orderCount
+        const { email } = await Users.findById(userId)        
 
         if (newOrderId) {
+            // store new order in mongodb
             const newOrder = new Orders({
-                orderId: newOrderId, userId, medicineId, orderCount, isPending: true
+                orderId: newOrderId, userId, medicines, isPending: true
             })
-            const savedOrder = await newOrder.save()
-
-            await Medicines.findByIdAndUpdate(medicineId, { stocks: newStocks })              
+            const savedOrder = await newOrder.save()          
 
             const html = `
             <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
@@ -60,7 +65,13 @@ const createOrder = async (req, res, next) => {
             </div>
             `
 
-            sendMail(email, html)
+            
+
+            Promise.all(uploadPromises).then(() => {
+                console.log('ok');
+            })
+
+            // sendMail(email, html)
 
             return res.status(201).json({ status: 201, orderId: savedOrder._id, msg: "New order has been successfully created!" })
         }
@@ -216,27 +227,73 @@ const getOrderByUserId = async (req, res, next) => {
 }
 
 // get all medicines for every users
-const getAllOrders = async (req, res) => {
+const getAllOrders = async (req, res, next) => {
     try {
         const { page = 1, limit = 10 } = req.query
 
-        const { start, end } = req.query //2023-01-01
-        if (!start || !end) {
+        const { start = 2023-01-01 , end = 2023-02-01 } = req.query //2023-01-01
+        
+        // const startDate = new Date(start).toISOString() <- can use in find()
 
-            const orders = await Orders.find().limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
+        const startDate = new Date(start)
+        const endDate = new Date(end)
 
-            return res.status(200).json({ status: 200, orders })
+        const filter = {
+            createdAt: {
+                $gte: startDate,
+                $lt: endDate
+            }
         }
 
-        const startDate = new Date(start).toISOString()
-        const endDate = new Date(end).toISOString()
+        const medicineLookup = {
+            from: "medicines",
+            localField: "medicines.medicineId",
+            foreignField: "_id",
+            as: "medicineDetails"
+        }
 
-        const orders = await Orders.find({
-            createdAt: {
-                "$gte": startDate,
-                "$lt": endDate
+        const categoryLookup = {
+            from: "categories",
+            localField: "medicineDetails.categoryId",
+            foreignField: "_id",
+            as: "categoryDetails"
+        }
+
+        const group = {
+            _id: "$_id",
+            orderId: { "$first": "$orderId" },
+            totalOrderCount: { $sum: "$medicines.orderCount" },
+            totalPrice: { $sum: "$medicineDetails.price" },
+
+            saleByCategory: {
+                "$first": {
+                    categoryTitle: "$categoryDetails.title",
+                    totalOrderCount: { $sum: "$medicines.orderCount" },
+                    totalPrice: { $sum: "$medicineDetails.price" },
+                    items: [
+                        {
+                            medicineName: "$medicineDetails.name",
+                            price: "$medicineDetails.price",
+                            orderCount: "$medicines.orderCount"
+                        }
+                    ]
+                },
+                // "$second": {
+                //     
+                // }
             }
-        }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
+        }
+
+        const orders = await Orders.aggregate([
+            { $match: filter },
+            { $unwind: "$medicines" },
+            { $lookup: medicineLookup },
+            { $unwind: "$medicineDetails" },
+            { $lookup:  categoryLookup},
+            { $unwind: "$categoryDetails" },
+            { $group: group },
+            // { $unwind: "$saleByCategory.items" }
+        ]).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
 
         return res.status(200).json({ status: 200, orders })
 

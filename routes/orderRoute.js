@@ -4,7 +4,7 @@ const { orderValidator } = require('../validators/orders/orderValidator');
 const router = require('express').Router()
 
 // routes
-router.post('/', orderValidator, createOrder)
+router.post('/', createOrder)
 
 // read
 router.get('/', getAllOrders)

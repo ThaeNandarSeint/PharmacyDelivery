@@ -6,11 +6,19 @@ const orderSchema = new mongoose.Schema({
         required: [true, "Please enter order id!"],
     },
 
-    medicineId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Medicines',
-        required: true,
-    },
+    medicines: [
+        {
+            medicineId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Medicines',
+                required: true,
+            },
+            orderCount: {
+                type: Number,
+                required: true,
+            }
+        }
+    ],
 
     userId: {
         type: mongoose.Schema.Types.ObjectId,
