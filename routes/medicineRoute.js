@@ -53,6 +53,6 @@ router.get("/outOfStocks", getAllOutOfStocks);
 router.get("/:id", getByMedicineId);
 router.get("/categoryId/:id", getMedicineByCategoryId);
 
-router.get("/search/:key", searchMedicines);
+router.get("/search/key", searchMedicines);
 
 module.exports = router;
