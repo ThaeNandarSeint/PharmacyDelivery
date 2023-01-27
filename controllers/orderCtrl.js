@@ -5,6 +5,8 @@ const Categories = require('../models/categoryModel')
 
 // services
 const sendMail = require('../services/sendMail')
+const { orderConfirmHtml } = require('../helpers/orderConfirmHtml')
+const { createCustomId } = require('../services/createCustomId')
 
 // create
 const createOrder = async (req, res, next) => {
@@ -12,11 +14,13 @@ const createOrder = async (req, res, next) => {
         const userId = req.user.id
 
         const { medicines } = req.body
+        // empty validation
         if (!userId || !medicines) {
-            return res.status(400).json({ status: false, msg: "Some required information are missing!" })
+            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
         }
 
         let uploadPromises = []
+
         for (let i = 0; i < medicines.length; i++) {
             const { medicineId, orderCount } = medicines[i];
 
@@ -26,54 +30,31 @@ const createOrder = async (req, res, next) => {
             }
             if (orderCount > stocks) {
                 return res.status(410).json({ status: 410, msg: `This medicine ${name} can be ordered less than ${stocks}!` })
-            }  
+            }
             const newStock = stocks - orderCount
 
-            uploadPromises.push(Medicines.findByIdAndUpdate(medicineId, { stocks: newStock })) 
-        } 
-
-        let newOrderId;
-
-        const documentCount = await Orders.countDocuments()
-        newOrderId = "O_" + (documentCount + 1)
-
-        const lastOrder = await Orders.findOne().sort({ createdAt: -1 })
-
-        if (lastOrder) {
-            const { orderId } = lastOrder
-            const charArray = orderId.split("")
-            const newCharArray = charArray.filter((char) => char !== 'O' && char !== "_")
-            const oldOrderId = newCharArray.toString()
-
-            newOrderId = "O_" + ((oldOrderId * 1) + 1)
+            uploadPromises.push(Medicines.findByIdAndUpdate(medicineId, { stocks: newStock }))
         }
 
-        const { email } = await Users.findById(userId)        
+        // create custom id
+        const id = await createCustomId(Orders, "O")
 
-        if (newOrderId) {
+        const { email } = await Users.findById(userId)
+
+        if (id) {
             // store new order in mongodb
             const newOrder = new Orders({
-                orderId: newOrderId, userId, medicines, isPending: true
+                id, userId, medicines, status: 'pending'
             })
-            const savedOrder = await newOrder.save()          
-
-            const html = `
-            <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
-                <h2 style="text-align: center; text-transform: uppercase;color: #009688;">Welcome From Pharmacy Delivery App</h2>
-                <p>Congratulations! Order Confirmed!</span>
-                </p>
-            </div>
-            `
-
-            
+            const savedOrder = await newOrder.save()
 
             Promise.all(uploadPromises).then(() => {
-                console.log('ok');
+
+                const html = orderConfirmHtml()
+                sendMail(email, html)
+
+                return res.status(201).json({ status: 201, orderId: savedOrder._id, msg: "New order has been successfully created!" })
             })
-
-            // sendMail(email, html)
-
-            return res.status(201).json({ status: 201, orderId: savedOrder._id, msg: "New order has been successfully created!" })
         }
 
     } catch (err) {
@@ -81,48 +62,53 @@ const createOrder = async (req, res, next) => {
     }
 }
 
-// approve order -> deliver stage
-const approveOrder = async (req, res, next) => {
+// approve order -> (pending -> confirm stage)
+const confirmOrder = async (req, res, next) => {
     try {
 
-        const { isCancel } = await Orders.findById(req.params.id)
-        if (isCancel) {
-            return res.status(400).json({ status: 400, msg: "This order has been already cancelled!" })
+        const { status } = await Orders.findById(req.params.id)
+
+        if (status === "confirm" || status === "deliver" || status === "complete" || status === "cancel") {
+            return res.status(400).json({ status: 400, msg: `Not allowed to confirm. This order has been already on ${status} stage!` })
         }
 
-        await Orders.findByIdAndUpdate(req.params.id, { isPending: false, isDeliver: true })
+        await Orders.findByIdAndUpdate(req.params.id, { status: "confirm" })
 
-        return res.status(200).json({ status: 200, msg: "This order has been successfully approved!" })
+        return res.status(200).json({ status: 200, msg: "This order has been successfully confirmed!" })
 
     } catch (err) {
         next(err)
     }
 }
+
+// deliver order -> (confirm -> deliver stage)
+
+// (deliver -> complete stage)
 
 // cancel order
 const cancelOrder = async (req, res, next) => {
     try {
-        const userId = req.user.id
+        const { status } = await Orders.findById(req.params.id)
 
-        const { isDeliver } = await Orders.findById(req.params.id)
-        const { isCancel } = await Orders.findById(req.params.id)
-
-        if (isCancel) {
-            return res.status(400).json({ status: 400, msg: "This order has been already cancelled!" })
-        }
-        if (isDeliver) {
-            return res.status(406).json({ status: 406, msg: "Not allowed to cancel. This order is on deliver stage!" })
+        if (status === "confirm" || status === "deliver" || status === "complete" || status === "cancel") {
+            return res.status(400).json({ status: 400, msg: `Not allowed to cancel. This order has been already on ${status} stage!` })
         }
 
-        const { orderCount } = await Orders.findById(req.params.id)
-        const { medicineId } = await Orders.findById(req.params.id)
+        const { medicines } = await Orders.findById(req.params.id)
 
-        const { stocks } = await Medicines.findById(medicineId)
-        const newStocks = stocks + orderCount
+        for (let i = 0; i < medicines.length; i++) {
+            const { medicineId, orderCount } = medicines[i];
 
-        await Medicines.findByIdAndUpdate(medicineId, { stocks: newStocks })
+            const { stocks } = await Medicines.findById(medicineId)
 
-        await Orders.findByIdAndUpdate(req.params.id, { isPending: false, isDeliver: false, isCancel: true, orderCount: 0, cancelBy: userId })
+            const newStocks = stocks + orderCount
+
+            await Medicines.findByIdAndUpdate(medicineId, { stocks: newStocks })
+        }
+        
+        const userId = req.user.id;
+
+        await Orders.findByIdAndUpdate(req.params.id, { status: "cancel", medicines: [], cancelBy: userId })
 
         return res.status(200).json({ status: 200, msg: "This order has been successfully cancelled!" })
 
@@ -131,28 +117,8 @@ const cancelOrder = async (req, res, next) => {
     }
 }
 
-// update order status -> cannot process
-const changeToPending = async (req, res, next) => {
-    try{       
+// read ----------------------------------------------
 
-        const userId = req.user.id
-
-        const { isCancel } = await Orders.findById(req.params.id)
-
-        if (isCancel) {
-            return res.status(400).json({ status: 400, msg: "This order has been already cancelled!" })
-        }
-
-        
-
-    }catch(err){
-        next(err)
-    }
-}
-
-// delete
-
-// get medicine by medicine id
 const getByOrderId = async (req, res, next) => {
     try {
         const order = await Orders.findById(req.params.id)
@@ -164,232 +130,104 @@ const getByOrderId = async (req, res, next) => {
     }
 }
 
-// search orders
-
-// get order by medicine id
-const getOrderByMedicineId = async (req, res, next) => {
-    try {
-        const { page = 1, limit = 10 } = req.query
-
-        const { start, end } = req.query //2023-01-01
-        if (!start || !end) {
-
-            const orders = await Orders.find({ medicineId: req.params.id }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-            return res.status(200).json({ status: 200, orders })
-        }
-
-        const startDate = new Date(start).toISOString()
-        const endDate = new Date(end).toISOString()
-
-        const orders = await Orders.find({
-            createdAt: {
-                "$gte": startDate,
-                "$lt": endDate
-            }
-        }, { medicineId: req.params.id }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-        return res.status(200).json({ status: 200, orders })
-
-    } catch (err) {
-        next(err);
-    }
-}
-
-// get order by user id
-const getOrderByUserId = async (req, res, next) => {
-    try {
-        const { page = 1, limit = 10 } = req.query
-
-        const { start, end } = req.query //2023-01-01
-        if (!start || !end) {
-
-            const orders = await Orders.find({ userId: req.params.id }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-            return res.status(200).json({ status: 200, orders })
-        }
-
-        const startDate = new Date(start).toISOString()
-        const endDate = new Date(end).toISOString()
-
-        const orders = await Orders.find({
-            createdAt: {
-                "$gte": startDate,
-                "$lt": endDate
-            }
-        }, { userId: req.params.id }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-        return res.status(200).json({ status: 200, orders })
-
-    } catch (err) {
-        next(err);
-    }
-}
-
-// get all medicines for every users
 const getAllOrders = async (req, res, next) => {
     try {
-        const { page = 1, limit = 10 } = req.query
-
-        const { start = 2023-01-01 , end = 2023-02-01 } = req.query //2023-01-01
-        
-        // const startDate = new Date(start).toISOString() <- can use in find()
+        // for one year
+        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", status = "", userName = "", medicineName = "", categoryTitle = "" } = req.query;
 
         const startDate = new Date(start)
         const endDate = new Date(end)
 
-        const filter = {
+        // stages
+        const dateFilter = {
             createdAt: {
                 $gte: startDate,
                 $lt: endDate
             }
         }
-
+        const statusFilter = {
+            status: {
+                $eq: status
+            }
+        }
+        const userLookup = {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userDetail",
+        }
         const medicineLookup = {
             from: "medicines",
             localField: "medicines.medicineId",
             foreignField: "_id",
-            as: "medicineDetails"
+            as: "medicineDetail",
         }
-
         const categoryLookup = {
             from: "categories",
-            localField: "medicineDetails.categoryId",
+            localField: "medicineDetail.categoryId",
             foreignField: "_id",
-            as: "categoryDetails"
+            as: "categoryDetail",
         }
-
-        const group = {
+        const matchStage = {
+            $and: [
+                { "userDetail.name": { $regex: userName } },
+                { "medicineDetail.name": { $regex: medicineName } },
+                { "categoryDetail.title": { $regex: categoryTitle } },
+            ],
+        }
+        const groupStage = {
             _id: "$_id",
-            orderId: { "$first": "$orderId" },
-            totalOrderCount: { $sum: "$medicines.orderCount" },
-            totalPrice: { $sum: "$medicineDetails.price" },
-
-            saleByCategory: {
-                "$first": {
-                    categoryTitle: "$categoryDetails.title",
-                    totalOrderCount: { $sum: "$medicines.orderCount" },
-                    totalPrice: { $sum: "$medicineDetails.price" },
-                    items: [
-                        {
-                            medicineName: "$medicineDetails.name",
-                            price: "$medicineDetails.price",
-                            orderCount: "$medicines.orderCount"
-                        }
-                    ]
-                },
-                // "$second": {
-                //     
-                // }
-            }
+            totalOrderCount: { $sum: "medicines.orderCount" }
         }
 
-        const orders = await Orders.aggregate([
-            { $match: filter },
-            { $unwind: "$medicines" },
+        const limitStage = limit * 1
+        const skipStage = (page - 1) * limit
+
+        const pipelines = [
+            { $match: dateFilter },
+            { $match: statusFilter },
+            { $lookup: userLookup },
             { $lookup: medicineLookup },
-            { $unwind: "$medicineDetails" },
-            { $lookup:  categoryLookup},
-            { $unwind: "$categoryDetails" },
-            { $group: group },
-            // { $unwind: "$saleByCategory.items" }
-        ]).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
+            { $lookup: categoryLookup },
+            { $match: matchStage },
+            // { $group: groupStage },
+
+            { $sort: { id: -1 } },
+            { $skip: skipStage },
+            { $limit: limitStage }
+        ]
+
+        const orders = await Orders.aggregate(pipelines)
 
         return res.status(200).json({ status: 200, orders })
 
-    } catch (err) {
-        next(err);
-    }
-}
+        // const group = {
+        //     _id: "$_id",
+        //     orderId: { "$first": "$orderId" },
+        //     totalOrderCount: { $sum: "$medicines.orderCount" },
+        //     totalPrice: { $sum: "$medicineDetails.price" },
 
-// get all pending orders
-const getAllPendingOrders = async (req, res, next) => {
-    try {
-
-        const { page = 1, limit = 10 } = req.query
-
-        const { start, end } = req.query //2023-01-01
-        if (!start || !end) {
-
-            const orders = await Orders.find({ isPending: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-            return res.status(200).json({ status: 200, orders })
-        }
-
-        const startDate = new Date(start).toISOString()
-        const endDate = new Date(end).toISOString()
-
-        const orders = await Orders.find({
-            createdAt: {
-                "$gte": startDate,
-                "$lt": endDate
-            }
-        }, { isPending: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-        return res.status(200).json({ status: 200, orders })
+        //     saleByCategory: {
+        //         "$first": {
+        //             categoryTitle: "$categoryDetails.title",
+        //             totalOrderCount: { $sum: "$medicines.orderCount" },
+        //             totalPrice: { $sum: "$medicineDetails.price" },
+        //             items: [
+        //                 {
+        //                     medicineName: "$medicineDetails.name",
+        //                     price: "$medicineDetails.price",
+        //                     orderCount: "$medicines.orderCount"
+        //                 }
+        //             ]
+        //         },
+        //         // "$second": {
+        //         //     
+        //         // }
+        //     }
+        // }
 
     } catch (err) {
-        next(err);
-    }
-}
-
-// get all deliver orders
-const getAllDeliverOrders = async (req, res, next) => {
-    try {
-        const { page = 1, limit = 10 } = req.query
-
-        const { start, end } = req.query //2023-01-01
-        if (!start || !end) {
-
-            const orders = await Orders.find({ isDeliver: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-            return res.status(200).json({ status: 200, orders })
-        }
-
-        const startDate = new Date(start).toISOString()
-        const endDate = new Date(end).toISOString()
-
-        const orders = await Orders.find({
-            createdAt: {
-                "$gte": startDate,
-                "$lt": endDate
-            }
-        }, { isDeliver: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-        return res.status(200).json({ status: 200, orders })
-
-    } catch (err) {
-        next(err);
-    }
-}
-
-// get all cancel orders
-const getAllCancelOrders = async (req, res, next) => {
-    try {
-        const { page = 1, limit = 10 } = req.query
-
-        const { start, end } = req.query //2023-01-01
-        if (!start || !end) {
-
-            const orders = await Orders.find({ isCancel: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-            return res.status(200).json({ status: 200, orders })
-        }
-
-        const startDate = new Date(start).toISOString()
-        const endDate = new Date(end).toISOString()
-
-        const orders = await Orders.find({
-            createdAt: {
-                "$gte": startDate,
-                "$lt": endDate
-            }
-        }, { isCancel: true }).limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-        return res.status(200).json({ status: 200, orders })
-
-    } catch (err) {
-        next(err);
+        next(err)
     }
 }
 
@@ -397,13 +235,9 @@ module.exports = {
     createOrder,
 
     getByOrderId,
-    getOrderByMedicineId,
-    getOrderByUserId,
-    getAllOrders,
-    getAllPendingOrders,
-    getAllDeliverOrders,
-    getAllCancelOrders,
 
-    approveOrder,
+    getAllOrders,
+
+    confirmOrder,
     cancelOrder
 }

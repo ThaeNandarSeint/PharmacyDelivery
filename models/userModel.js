@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 const userSchema = new mongoose.Schema({
-    userId: {
+    id: {
         type: String,
         required: [true, "Please enter user id!"],
     },
@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema({
     // role
     roleType: {
         type: String,
-        default: ''
+        enum: ['Superadmin', 'Admin', 'Supervisor', 'Operator'],
     }
 
 }, {

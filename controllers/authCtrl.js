@@ -8,9 +8,11 @@ const Otps = require('../models/otpModel')
 // helpers
 const { createActivationToken, createAccessToken } = require('../helpers/createTokens')
 const { cookieOptions } = require('../helpers/cookieOptions')
+const { activateEmailHtml } = require('../helpers/activateEmailHtml')
 
 // services
 const sendMail = require('../services/sendMail')
+const { createCustomId } = require('../services/createCustomId')
 
 // from dot env
 const ACTIVATION_TOKEN_SECRET = process.env.ACTIVATION_TOKEN_SECRET
@@ -33,27 +35,13 @@ const register = async (req, res, next) => {
             email,
             password: passwordHash
         }
-        // create email activation token
+        // create email activation token & send email
         const activation_token = createActivationToken(newUser)
 
         const url = `${CLIENT_URL}/user/activate/${activation_token}`
-        const txt = "Verify your email address"
+        const text = "Verify your email address"
 
-        const html = `
-        <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
-            <h2 style="text-align: center; text-transform: uppercase;color: #009688;">Welcome From Pharmacy Delivery App</h2>
-            <p>Congratulations! You're almost set to start using Pharmacy Delivery App.
-                Just click the button below to validate your email address. 
-                <span style="color: red">This token will be expired in 5 minutes !</span>
-            </p>
-            
-            <a href=${url} style="background: crimson; text-decoration: none; color: white; padding: 10px 20px; margin: 10px 0; display: inline-block;">${txt}</a>
-        
-            <p>If the button doesn't work for any reason, you can also click on the link below:</p>
-        
-            <div>${url}</div>
-        </div>
-        `
+        const html = activateEmailHtml(url, text)
 
         sendMail(email, html)
 
@@ -69,7 +57,8 @@ const activateEmail = async (req, res, next) => {
     try {
         // check email activation token
         const { activation_token } = req.body
-
+        
+        // verify token
         jwt.verify(activation_token, ACTIVATION_TOKEN_SECRET, async (err, user) => {
             if (err) {
                 return res.status(400).json({ status: false, msg: err.message })
@@ -82,35 +71,23 @@ const activateEmail = async (req, res, next) => {
                 return res.status(400).json({ status: 400, msg: "This email already exists!" })
             }
 
-            let newUserId;
-
-            const documentCount = await Users.countDocuments()
-            newUserId = "U_" + (documentCount + 1)
-
-            const lastUser = await Users.findOne().sort({ createdAt: -1 })
-
-            if (lastUser) {
-                const { userId } = lastUser
-                const charArray = userId.split("")
-                const newCharArray = charArray.filter((char) => char !== 'U' && char !== "_")
-                const oldUserId = newCharArray.toString()
-
-                newUserId = "U_" + ((oldUserId * 1) + 1)
-            }
+            // create custom id
+            const id = await createCustomId(Users, "U")
 
             // create user model & save in mongodb
-            if (newUserId) {
+            if (id) {
                 const newUser = new Users({
-                    userId: newUserId,
+                    id,
                     name,
                     email,
                     password,
-                    pictureUrls: ["https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"],
-                    picPublicIds: 'PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
+                    pictureUrls: [ "https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp" ],
+                    picPublicIds: [ "PharmacyDelivery/Users/default-profile-picture_nop9jb.webp" ]
                 })
 
                 const savedUser = await newUser.save()
 
+                // create token & save in cookies
                 const access_token = createAccessToken({ id: savedUser._id })
                 res.cookie('access_token', access_token, cookieOptions)
 
@@ -139,6 +116,7 @@ const login = async (req, res, next) => {
             return res.status(400).json({ status: 400, msg: "Wrong credentials!" })
         }
 
+        // check if two factor or not
         const { isTwoFactor, phoneNumber, _id } = user
         if (isTwoFactor) {
             req.body = { ...req.body, isTwoFactor, phoneNumber, userId: _id }
@@ -146,6 +124,7 @@ const login = async (req, res, next) => {
             return;
         }
 
+        // create token & save in cookies
         const access_token = createAccessToken({ id: user._id })
         res.cookie('access_token', access_token, cookieOptions)
 
@@ -165,26 +144,12 @@ const forgotPassword = async (req, res, next) => {
             return res.status(400).json({ status: 400, msg: "This email does not exist!" })
         }
 
+        // create token & send email
         const activation_token = createActivationToken({ id: user._id })
         const url = `${CLIENT_URL}/user/reset/${activation_token}`
 
-        const txt = "Reset your password"
-
-        const html = `
-        <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
-            <h2 style="text-align: center; text-transform: uppercase;color: #009688;">Welcome From Pharmacy Delivery App</h2>
-            <p>Congratulations! You're almost set to start using Pharmacy Delivery App.
-                Just click the button below to validate your email address. 
-                <span style="color: red">This token will be expired in 5 minutes !</span>
-            </p>
-            
-            <a href=${url} style="background: crimson; text-decoration: none; color: white; padding: 10px 20px; margin: 10px 0; display: inline-block;">${txt}</a>
-        
-            <p>If the button doesn't work for any reason, you can also click on the link below:</p>
-        
-            <div>${url}</div>
-        </div>
-        `
+        const text = "Reset your password"
+        const html = activateEmailHtml(url, text)
 
         sendMail(email, html)
 

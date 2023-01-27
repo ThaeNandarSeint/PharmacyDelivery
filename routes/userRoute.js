@@ -1,26 +1,26 @@
 const router = require('express').Router()
 
 // controllers
-const { updatePassword, searchUsers, getByUserId, getAllUsers, updateMe, updateUser, grantRole } = require('../controllers/userCtrl');
+const { updatePassword, getByUserId, getAllUsers, updateMe, updateUser, grantRole } = require('../controllers/userCtrl');
 
 // middlewares
-// const { accessUserRoute, accessUserRoleRoute } = require('../middlewares/roleAuth');
 const { roleAuth } = require('../middlewares/roleAuth');
-const { uploadImages } = require('../middlewares/uploadImages');
+const { profileUpdateValidator } = require('../Validators/users/profileUpdateValidator');
 
 // routes
-router.put('/:id/updateMyPw', updatePassword)
-router.put('/:id/updateMe', uploadImages, updateMe)
-
-// ----------------------- can do only Admin -------------------------------
+router.put('/password', updatePassword)
+router.put('/me', profileUpdateValidator, updateMe)
 
 router.get('/', getAllUsers)
 router.get('/:id', getByUserId)
-router.get('/search/:key', searchUsers)
-router.put('/:id', roleAuth("Superadmin", "Admin"), uploadImages, updateUser)
 
-// // ----------------------- can do only Super Admin -------------------------------
-router.put('/:id/grant', roleAuth("Superadmin", "Admin"), grantRole)
+// ----------------------- can do only SuperAdmin & Admin -------------------------------
+
+router.put('/:id', roleAuth("Superadmin", "Admin"), profileUpdateValidator, updateUser)
+
+// ----------------------- can do only Super Admin -------------------------------
+
+router.put('/:id/grant', roleAuth("Superadmin"), grantRole)
 
 // test
 router.get('/', roleAuth, getAllUsers)

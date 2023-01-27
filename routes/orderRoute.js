@@ -1,24 +1,19 @@
-const { createOrder, getAllOrders, getByOrderId, getOrderByMedicineId, getOrderByUserId, getAllPendingOrders, getAllDeliverOrders, getAllCancelOrders, approveOrder, cancelOrder } = require('../controllers/orderCtrl');
-const { orderValidator } = require('../validators/orders/orderValidator');
-
 const router = require('express').Router()
 
+// controllers
+const { createOrder, getAllOrders, getByOrderId, confirmOrder, cancelOrder } = require('../controllers/orderCtrl');
+
+// middlewares
+const { roleAuth } = require('../middlewares/roleAuth');
+
 // routes
-router.post('/', createOrder)
+router.post('/', roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), createOrder)
+router.put('/confirm/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), confirmOrder)
 
-// read
+// can do all users
 router.get('/', getAllOrders)
-router.get('/orderId/:id', getByOrderId)
-router.get('/medicineId/:id', getOrderByMedicineId)
-router.get('/userId/:id', getOrderByUserId)
-
-router.get('/pending', getAllPendingOrders)
-router.get('/deliver', getAllDeliverOrders)
-router.get('/cancel', getAllCancelOrders)
+router.get('/:id', getByOrderId)
 
 router.put('/cancel/:id', cancelOrder)
-
-// cannot do normal users
-router.put('/approve/:id', approveOrder)
 
 module.exports = router;

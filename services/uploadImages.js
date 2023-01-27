@@ -7,32 +7,26 @@ cloudinary.config({
     api_secret: process.env.CLOUD_API_SECRET
 })
 
-const uploadImages = async (req, res, next) => {
-    // isEmpty validation
-    if (!req.files || Object.keys(req.files).length === 0) {
-        req.body.pictures = [
+const uploadImages = (files, folderName) => {
+    // not upload 
+    if (!files || Object.keys(files).length === 0) {
+        const pictures = [
             {
-                secure_url: '',
-                public_id: ''
+                secure_url: 'https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp',
+                public_id: 'PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
             }
         ]
-        next()
-        return;
+        return pictures
     }
 
-    try {
-        if(!req.folderName){
-            req.folderName = `PharmacyDelivery/Users`
-        }
-
-        const { pictures } = req.files
+        const { pictures } = files        
 
         const uploadPromises = [];
 
         if(!pictures.length){
-            validatePicture(pictures)
+            // validatePicture(pictures)
             uploadPromises.push(cloudinary.v2.uploader.upload(pictures.tempFilePath, {
-                folder: `${req.folderName}/`,
+                folder: `${folderName}/`,
                 width: 600,
                 height: 600,
                 crop: 'fill'
@@ -42,35 +36,19 @@ const uploadImages = async (req, res, next) => {
         for (let i = 0; i < pictures.length; i++) {
             const picture = pictures[i];
 
-            validatePicture(picture)
+            // validatePicture(picture)
 
             uploadPromises.push(cloudinary.v2.uploader.upload(picture.tempFilePath, {
-                folder: `${req.folderName}/`,
+                folder: `${folderName}/`,
                 width: 600,
                 height: 600,
                 crop: 'fill'
             }));
         }
-
-        Promise.all(uploadPromises)
-            .then((pics) => {
-                req.body.pictures = pics
-                if(!pictures.length) {
-                    removeTmp(pictures.tempFilePath)
-                }
-                for (let i = 0; i < pictures.length; i++) {
-                    const picture = pictures[i];
-                    removeTmp(picture.tempFilePath)
-                }
-                next()
-            })
-            .catch((err) => {
-                next(err)
-            });
-
-    } catch (err) {
-        next(err)
-    }
+        
+        if (uploadPromises.length) {
+            return uploadPromises
+        }
 }
 
 const validatePicture = (picture) => {

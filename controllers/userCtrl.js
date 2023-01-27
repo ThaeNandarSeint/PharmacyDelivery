@@ -10,9 +10,10 @@ cloudinary.config({
 
 // models
 const Users = require("../models/userModel");
-const Roles = require('../models/roleModel')
+const { uploadImages } = require('../services/uploadImages');
+const { deleteImages } = require('../services/deleteImages');
 
-// update My Password
+
 const updatePassword = async (req, res, next) => {
     try {
         const { currentPassword, newPassword } = req.body;
@@ -20,7 +21,9 @@ const updatePassword = async (req, res, next) => {
             return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
         }
 
-        const user = await Users.findById(req.params.id);
+        const userId = req.user.id
+
+        const user = await Users.findById(userId);
         if (!user) {
             return res.status(400).json({ status: 400, msg: "Something went wrong!" });
         }
@@ -32,7 +35,7 @@ const updatePassword = async (req, res, next) => {
         // change password
         const passwordHash = await bcrypt.hash(newPassword, 12);
 
-        await Users.findByIdAndUpdate(req.params.id, {
+        await Users.findByIdAndUpdate(userId, {
             password: passwordHash,
         })
 
@@ -40,186 +43,175 @@ const updatePassword = async (req, res, next) => {
 
     } catch (err) {
         next(err);
-        return res.status(500).json({ status: 500, msg: err.message });
     }
 }
 
-// update Me
 const updateMe = async (req, res, next) => {
     try {
-        const { name, pictures } = req.body
+        const { name } = req.body
+        if (!name) {
+            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
+        }
+
+        const userId = req.user.id
+
+        const user = await Users.findById(userId)
+
+        let deletePromises = []
+
+        let oldPicPublicIds = user.picPublicIds
+        let oldPictureUrls = user.pictureUrls
+
+        // already exist photo in database
+        if (oldPicPublicIds[0] !== "" && oldPictureUrls[0] !== "") {
+            // delete old picture from cloudinary
+            deletePromises = deleteImages(oldPicPublicIds)
+
+            oldPicPublicIds = [""];
+            oldPictureUrls = [""];
+        }
+
+        const uploadPromises = uploadImages(req.files, req.folderName)
+
+        const updateUser = async (userId, payload) => {
+            await Users.findByIdAndUpdate(userId, payload);
+            return res.status(200).json({ status: 200, msg: "Your profile has been successfully updated!" })
+        }
+
+        // include photo in request body
+        const pictureUrls = [];
+        const picPublicIds = [];
+
+        Promise.all(deletePromises).then(() => Promise.all(uploadPromises))
+        .then(async (pictures) => {
+
+            for (let i = 0; i < pictures.length; i++) {
+            const { secure_url, public_id } = pictures[i];
+            pictureUrls.push(secure_url);
+            picPublicIds.push(public_id);
+            }
+
+            await updateUser(userId, {
+                name, picPublicIds, pictureUrls
+            })
+        })
+
+    } catch (err) {
+        next(err);
+    }
+}
+
+const getByUserId = async (req, res, next) => {
+    try {
+
+        const user = await Users.findById(req.params.id).select('-password')
+
+        return res.status(200).json({ status: 200, user })
+
+    } catch (err) {
+        next(err);
+    }
+}
+
+// get all users
+const getAllUsers = async (req, res, next) => {
+    try {
+        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", name = "" } = req.query;
+
+        const startDate = new Date(start)
+        const endDate = new Date(end)
+
+        // stages
+        const dateFilter = { 
+            createdAt: { 
+                $gte: startDate,
+                $lt: endDate
+            } 
+        }
+        const matchStage = {
+            $or: [
+                { name: { $regex: name } }
+            ],
+        }
+        const projectStage = {
+            password: 0
+        }
+        const limitStage = limit * 1
+        const skipStage = (page - 1) * limit
+
+        const users = await Users.aggregate([ 
+            { $match: dateFilter },
+            { $match: matchStage },  
+            { $project: projectStage },
+            { $sort: { id: -1 } },
+            { $skip: skipStage },
+            { $limit: limitStage }      
+        ])
+
+        return res.status(200).json({ status: 200, users })
+
+    } catch (err) {
+        next(err);
+    }
+}
+
+// ----------------------- can do only SuperAdmin & Admin -------------------------------
+
+const updateUser = async (req, res, next) => {
+    try {
+        const { name } = req.body
         if (!name) {
             return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
         }
 
         const user = await Users.findById(req.params.id)
 
-        const deletePromises = [];
+        let deletePromises = []
 
-        // contain 
-        if (user.picPublicIds[0] !== '' && user.pictureUrls[0] !== '') {
+        let oldPicPublicIds = user.picPublicIds
+        let oldPictureUrls = user.pictureUrls
+
+        // already exist photo in database
+        if (oldPicPublicIds[0] !== "" && oldPictureUrls[0] !== "") {
             // delete old picture from cloudinary
-            for (let i = 0; i < user.picPublicIds.length; i++) {
-                const oldPicPublicId = user.picPublicIds[i];
-                deletePromises.push(cloudinary.v2.uploader.destroy(oldPicPublicId));
-            }
-            user.picPublicIds = ['']
-            user.pictureUrls = ['']
+            deletePromises = deleteImages(oldPicPublicIds)
+
+            oldPicPublicIds = [""];
+            oldPictureUrls = [""];
         }
 
-        // not include photo in request body
-        if (pictures[0].public_id === '' && pictures[0].secure_url === '') {
-            // not exist old 
-            const picPublicIds = ['PharmacyDelivery/Users/default-profile-picture_nop9jb.webp']
-            const pictureUrls = ['https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp']
+        const uploadPromises = uploadImages(req.files, req.folderName)
 
-            // update new picture in mongodb  
-            await Users.findByIdAndUpdate(req.params.id, {
+        const updateUser = async (userId, payload) => {
+            await Users.findByIdAndUpdate(userId, payload);
+            return res.status(200).json({ status: 200, msg: "This user's profile has been successfully updated!" })
+        }
+
+        // include photo in request body
+        const pictureUrls = [];
+        const picPublicIds = [];
+
+        Promise.all(deletePromises).then(() => Promise.all(uploadPromises))
+        .then(async (pictures) => {
+
+            for (let i = 0; i < pictures.length; i++) {
+            const { secure_url, public_id } = pictures[i];
+            pictureUrls.push(secure_url);
+            picPublicIds.push(public_id);
+            }
+
+            await updateUser(req.params.id, {
                 name, picPublicIds, pictureUrls
             })
-            return res.status(200).json({ status: 200, msg: "Your profile has been successfully updated!" })
-        }
-
-        // update new picture in mongodb
-        const pictureUrls = []
-        const picPublicIds = []
-
-        Promise.all(deletePromises)
-            .then(() => {
-                for (let i = 0; i < pictures.length; i++) {
-                    const userPicture = pictures[i];
-                    pictureUrls.push(userPicture.secure_url)
-                    picPublicIds.push(userPicture.public_id)
-                }
-            })
-            .then(async () => {
-                // update new picture in mongodb
-                await Users.findByIdAndUpdate(req.params.id, {
-                    name, pictureUrls, picPublicIds
-                })
-
-                return res.status(200).json({ status: 200, msg: "Your profile has been successfully updated!" })
-            })
-            .catch((err) => {
-                next(err)
-            });
+        })
 
     } catch (err) {
         next(err);
-        return res.status(500).json({ msg: err.message });
-    }
-}
-
-// ----------------------- can do only Admin -------------------------------
-
-// update user
-const updateUser = async (req, res, next) => {
-    try {
-        const { name, superAdmin, pharmacyTeam, pictures } = req.body
-        if (!name && !superAdmin && !pharmacyTeam) {
-            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
-        }
-
-        const user = await Users.findById(req.params.id)
-
-        const deletePromises = [];
-
-        // // contain 
-        if (user.picPublicIds[0] !== '' && user.pictureUrls[0] !== '') {
-            // delete old picture from cloudinary
-            for (let i = 0; i < user.picPublicIds.length; i++) {
-                const oldPicPublicId = user.picPublicIds[i];
-                deletePromises.push(cloudinary.v2.uploader.destroy(oldPicPublicId));
-            }
-            user.picPublicIds = ['']
-            user.pictureUrls = ['']
-        }
-
-        // // not include photo in request body
-        if (pictures[0].public_id === '' && pictures[0].secure_url === '') {
-            // not exist old 
-            const picPublicIds = ['PharmacyDelivery/Users/default-profile-picture_nop9jb.webp']
-            const pictureUrls = ['https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp']
-
-            // update new picture in mongodb  
-            await Users.findByIdAndUpdate(req.params.id, {
-                name, picPublicIds, pictureUrls
-            })
-            return res.status(200).json({ status: 200, msg: "Your profile has been successfully updated!" })
-        }
-
-        // // update new picture in cloudinary
-        const pictureUrls = []
-        const picPublicIds = []
-
-        Promise.all(deletePromises)
-            .then(() => {
-                for (let i = 0; i < pictures.length; i++) {
-                    const userPicture = pictures[i];
-                    pictureUrls.push(userPicture.secure_url)
-                    picPublicIds.push(userPicture.public_id)
-                }
-            })
-            .then(async () => {
-                // update new picture in mongodb
-                await Users.findByIdAndUpdate(req.params.id, {
-                    name, pictureUrls, picPublicIds
-                })
-
-                return res.status(200).json({ status: 200, msg: "Your profile has been successfully updated!" })
-            })
-            .catch((err) => {
-                next(err)
-            });
-
-    } catch (err) {
-        next(err);
-    }
-}
-
-// search user
-const searchUsers = async (req, res, next) => {
-    try {
-        const users = await Users.find({
-            "$or": [
-                { name: { $regex: req.params.key } }
-            ]
-        }).select('-password')
-        return res.status(200).json({ status: 200, users })
-    } catch (err) {
-        next(err);
-        return res.status(500).json({ status: 500, msg: err.message })
-    }
-}
-
-// get by id
-const getByUserId = async (req, res, next) => {
-    try {
-        const user = await Users.findById(req.params.id)
-        return res.status(200).json({ status: 200, user })
-
-    } catch (err) {
-        next(err);
-        return res.status(500).json({ status: 500, msg: err.message })
-    }
-}
-
-// get all users
-const getAllUsers = async (req, res) => {
-    try {
-        const { page = 1, limit = 10 } = req.query
-        const users = await Users.find().limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
-
-        return res.status(200).json({ status: 200, users })
-
-    } catch (err) {
-        next(err);
-        return res.status(500).json({ status: 500, msg: err.message })
     }
 }
 
 // ----------------------- can do only Super Admin -------------------------------
-// grant
+
 const grantRole = async (req, res, next) => {
     try{
         // validation testing
@@ -228,9 +220,7 @@ const grantRole = async (req, res, next) => {
             return res.status(400).json({ status: false, msg: "Some required information are missing!" });
         }
 
-        const { roleId } = await Roles.findOne({ roleType })
-
-        await Users.findByIdAndUpdate(req.params.id, { role: roleId })
+        await Users.findByIdAndUpdate(req.params.id, { roleType })
 
         return res.status(200).json({ status: 200, msg: `This user has been successfully granted as ${roleType}` })
 
@@ -239,28 +229,13 @@ const grantRole = async (req, res, next) => {
     }
 }
 
-// add new user with role
-
-// remove user from role
-
-
-// update user role
-
-
-
-
-// delete
-
-
-
 module.exports = {
     updatePassword,
     updateMe,
 
-    searchUsers,
     getByUserId,
     getAllUsers,
-    updateUser,
 
+    updateUser,
     grantRole
 };

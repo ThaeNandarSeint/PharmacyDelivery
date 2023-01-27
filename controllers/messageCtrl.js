@@ -7,7 +7,7 @@ const Messages = require("../models/messageModel");
         const { from, to } = req.body;
 
         const messages = await Messages.find({
-        users: { $all: [from, to] },
+            users: { $all: [from, to] },
         }).sort({ updatedAt: 1 });
 
         const projectedMessages = messages.map((msg) => {
