@@ -8,6 +8,9 @@ cloudinary.config({
 
 // models
 const Medicines = require("../models/medicineModel");
+const Users = require('../models/userModel')
+
+// services
 const { createCustomId } = require("../services/createCustomId");
 const { deleteImages } = require("../services/deleteImages");
 const { uploadImages } = require("../services/uploadImages");
@@ -54,7 +57,7 @@ const createMedicine = async (req, res, next) => {
           const { secure_url, public_id } = pictures[i];
           pictureUrls.push(secure_url);
           picPublicIds.push(public_id);
-        }    
+        }
 
         await storeNewMedicine(pictureUrls, picPublicIds)
 
@@ -113,7 +116,7 @@ const updateMedicine = async (req, res, next) => {
           picPublicIds.push(public_id);
         }
 
-        await updateMedicine(req.params.id, 
+        await updateMedicine(req.params.id,
           {
             categoryId,
             name,
@@ -181,12 +184,57 @@ const deleteMedicine = async (req, res, next) => {
   }
 };
 
+// normal users --------------------------------------------
+const addToFavourite = async (req, res, next) => {
+  try {
+
+    const userId = req.user.id
+
+    const { favouriteMedicines } = req.body
+
+    await Users.findByIdAndUpdate(userId, {
+      favouriteMedicines
+    })
+
+    return res.status(200).json({
+      status: 200,
+      msg: "Successfully added!",
+    });
+
+  } catch (err) {
+    next(err)
+  }
+}
+
+const getAllFavouriteMedicines = async (req, res, next) => {
+  try {
+
+    const userId = req.user.id
+    const { favouriteMedicines } = await Users.findById(userId)
+
+    const medicines = []
+
+    for (let i = 0; i < favouriteMedicines.length; i++) {
+      const medicineId = favouriteMedicines[i];
+
+      const medicine = await Medicines.findById(medicineId)
+      medicines.push(medicine)
+
+    }
+
+    return res.status(200).json({ status: 200, medicines });
+
+  } catch (err) {
+    next(err)
+  }
+}
+
 // read -----------------------------------------------
 
 // get medicine by medicine id
 const getByMedicineId = async (req, res, next) => {
   try {
-    
+
     const medicine = await Medicines.findById(req.params.id);
 
     return res.status(200).json({ status: 200, medicine });
@@ -200,17 +248,17 @@ const getByMedicineId = async (req, res, next) => {
 const getAllMedicines = async (req, res, next) => {
   try {
     // for one year
-    const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", name = "", title = "" } = req.query;
+    const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", name = "", title = "", companyName = "" } = req.query;
 
     const startDate = new Date(start)
     const endDate = new Date(end)
 
     // stages
-    const dateFilter = { 
-      createdAt: { 
+    const dateFilter = {
+      createdAt: {
         $gte: startDate,
         $lt: endDate
-      } 
+      }
     }
     const categoryLookup = {
       from: "categories",
@@ -222,8 +270,10 @@ const getAllMedicines = async (req, res, next) => {
       $and: [
         { name: { $regex: name } },
         { "categoryDetail.title": { $regex: title } },
+        { companyName: { $regex: companyName } },
       ],
     }
+
     const limitStage = limit * 1
     const skipStage = (page - 1) * limit
 
@@ -231,16 +281,16 @@ const getAllMedicines = async (req, res, next) => {
       { $match: dateFilter },
       { $lookup: categoryLookup },
       { $unwind: "$categoryDetail" },
-      { $match: matchStage },  
-      { $sort: { id: -1 } },
+      { $match: matchStage },
+      { $sort: { orderCount: -1 } },
       { $skip: skipStage },
-      { $limit: limitStage }      
+      { $limit: limitStage }
     ]
 
     const medicines = await Medicines.aggregate(pipelines)
 
     return res.status(200).json({ status: 200, medicines });
-    
+
   } catch (err) {
     next(err);
   }
@@ -256,11 +306,11 @@ const getAllExpiredMedicines = async (req, res, next) => {
     const endDate = new Date(end)
 
     // stages
-    const dateFilter = { 
-      expiredDate: { 
+    const dateFilter = {
+      expiredDate: {
         $gte: startDate,
         $lt: endDate
-      } 
+      }
     }
     const categoryLookup = {
       from: "categories",
@@ -281,16 +331,16 @@ const getAllExpiredMedicines = async (req, res, next) => {
       { $match: dateFilter },
       { $lookup: categoryLookup },
       { $unwind: "$categoryDetail" },
-      { $match: matchStage },  
+      { $match: matchStage },
       { $sort: { id: -1 } },
       { $skip: skipStage },
-      { $limit: limitStage }      
+      { $limit: limitStage }
     ]
 
     const medicines = await Medicines.aggregate(pipelines)
 
     return res.status(200).json({ status: 200, medicines });
-    
+
   } catch (err) {
     next(err);
   }
@@ -306,11 +356,11 @@ const getAllStocks = async (req, res, next) => {
     const endDate = new Date(end)
 
     // stages
-    const dateFilter = { 
-      createdAt: { 
+    const dateFilter = {
+      createdAt: {
         $gte: startDate,
         $lt: endDate
-      } 
+      }
     }
     const filterStocks = {
       stocks: { $ne: 0 }
@@ -335,16 +385,16 @@ const getAllStocks = async (req, res, next) => {
       { $match: filterStocks },
       { $lookup: categoryLookup },
       { $unwind: "$categoryDetail" },
-      { $match: matchStage },  
+      { $match: matchStage },
       { $sort: { id: -1 } },
       { $skip: skipStage },
-      { $limit: limitStage }      
+      { $limit: limitStage }
     ]
 
     const medicines = await Medicines.aggregate(pipelines)
 
     return res.status(200).json({ status: 200, medicines });
-      
+
   } catch (err) {
     next(err);
   }
@@ -360,11 +410,11 @@ const getAllOutOfStocks = async (req, res, next) => {
     const endDate = new Date(end)
 
     // stages
-    const dateFilter = { 
-      createdAt: { 
+    const dateFilter = {
+      createdAt: {
         $gte: startDate,
         $lt: endDate
-      } 
+      }
     }
     const filterStocks = {
       stocks: { $eq: 0 }
@@ -389,16 +439,16 @@ const getAllOutOfStocks = async (req, res, next) => {
       { $match: filterStocks },
       { $lookup: categoryLookup },
       { $unwind: "$categoryDetail" },
-      { $match: matchStage },  
+      { $match: matchStage },
       { $sort: { id: -1 } },
       { $skip: skipStage },
-      { $limit: limitStage }      
+      { $limit: limitStage }
     ]
 
     const medicines = await Medicines.aggregate(pipelines)
 
     return res.status(200).json({ status: 200, medicines });
-      
+
   } catch (err) {
     next(err);
   }
@@ -409,9 +459,12 @@ module.exports = {
   updateMedicine,
   deleteMedicine,
 
+  addToFavourite,
+  getAllFavouriteMedicines,
+
   getByMedicineId,
 
-  getAllMedicines,  
+  getAllMedicines,
   getAllStocks,
   getAllOutOfStocks,
   getAllExpiredMedicines,

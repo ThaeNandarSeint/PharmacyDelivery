@@ -1,7 +1,7 @@
 const router = require('express').Router()
 
 // controllers
-const { updatePassword, getByUserId, getAllUsers, updateMe, updateUser, grantRole } = require('../controllers/userCtrl');
+const { updatePassword, getByUserId, getAllUsers, updateMe, updateUser, grantRole, createDeliveryBoy, getAllDeliveryBoys } = require('../controllers/userCtrl');
 
 // middlewares
 const { roleAuth } = require('../middlewares/roleAuth');

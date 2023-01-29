@@ -27,6 +27,7 @@ const medicineRoute = require("./routes/medicineRoute");
 const categoryRoute = require("./routes/categoryRoute");
 const orderRoute = require("./routes/orderRoute");
 const messageRoute = require("./routes/messageRoute");
+const deliveryBoyRoute = require("./routes/deliveryBoyRoute");
 //
 const roleRoute = require("./routes/roleRoute");
 
@@ -39,6 +40,7 @@ app.use("/api/medicines", userAuth, medicineRoute);
 app.use("/api/categories", userAuth, categoryRoute);
 app.use("/api/orders", userAuth, orderRoute);
 app.use("/api/messages", userAuth, messageRoute);
+app.use("/api/deliveryBoys", userAuth, deliveryBoyRoute);
 //
 // app.use("/api/roles", userAuth, roleRoute);
 

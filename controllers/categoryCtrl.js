@@ -53,7 +53,6 @@ const createCategory = async (req, res, next) => {
 
     Promise.all(uploadPromises)
       .then(async (pictures) => {
-
         for (let i = 0; i < pictures.length; i++) {
           const { secure_url, public_id } = pictures[i];
           pictureUrls.push(secure_url);

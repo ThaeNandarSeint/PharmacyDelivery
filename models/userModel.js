@@ -49,7 +49,16 @@ const userSchema = new mongoose.Schema({
     roleType: {
         type: String,
         enum: ['Superadmin', 'Admin', 'Supervisor', 'Operator'],
-    }
+    },
+
+    // medicine
+    favouriteMedicines: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Medicines',
+            default: ''
+        },
+    ],
 
 }, {
     timestamps: true

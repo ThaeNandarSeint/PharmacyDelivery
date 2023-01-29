@@ -10,6 +10,8 @@ const {
   getAllExpiredMedicines,
   getAllStocks,
   getAllOutOfStocks,
+  addToFavourite,
+  getAllFavouriteMedicines,
 } = require("../controllers/medicineCtrl");
 
 // middlewares
@@ -40,6 +42,10 @@ router.delete(
 );
 
 // can do all users
+router.put('/favourite/add', addToFavourite)
+router.get('/favourite/get', getAllFavouriteMedicines)
+
+// 
 router.get("/", getAllMedicines);
 router.get("/expired", getAllExpiredMedicines);
 router.get("/stocks", getAllStocks);

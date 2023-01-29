@@ -1,48 +1,33 @@
 const mongoose = require("mongoose");
 
-const orderSchema = new mongoose.Schema({
+const deliveryBoySchema = new mongoose.Schema(
+  {
     id: {
-        type: String,
-        required: [true, "Please enter order id!"],
+      type: String,
+      required: [true, "Please enter delivery boy id!"],
     },
-
-    medicines: [
-        {
-            medicineId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Medicines',
-                default: ''
-            },
-            quantity: {
-                type: Number,
-                default: 0
-            }
-        }
-    ],
-
-    totalQuantity: {
-        type: Number,
-        default: 0
-    },
-
-    totalPrice: {
-        type: Number,
-        default: 0
-    },
-
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users',
         required: true,
     },
+    phoneNumber: {
+        type: String,
+        required: [true, "Please enter phone number!"],
+    },
+
+    vehicleType: {
+        type: String,
+        enum: ['bike', 'car'],
+    },
+    vehicleNumber: {
+        type: String,
+        required: [true, "Please enter vehicle number!"],
+    },
 
     status: {
         type: String,
-        enum: ['pending', 'deliver', 'complete', 'cancel'],
-    },
-    cancelBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users',
+        enum: ['pending', 'active', 'inactive'],
     },
 
     address: {
@@ -72,8 +57,10 @@ const orderSchema = new mongoose.Schema({
         }
     }
 
-}, {
-    timestamps: true
-});
+  },
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = mongoose.model("Orders", orderSchema);
+module.exports = mongoose.model("DeliveryBoys", deliveryBoySchema);

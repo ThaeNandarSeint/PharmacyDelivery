@@ -10,9 +10,12 @@ cloudinary.config({
 
 // models
 const Users = require("../models/userModel");
+const DeliveryBoys = require('../models/deliveryBoyModel')
+
+// services
 const { uploadImages } = require('../services/uploadImages');
 const { deleteImages } = require('../services/deleteImages');
-
+const { createCustomId } = require('../services/createCustomId');
 
 const updatePassword = async (req, res, next) => {
     try {
@@ -83,18 +86,18 @@ const updateMe = async (req, res, next) => {
         const picPublicIds = [];
 
         Promise.all(deletePromises).then(() => Promise.all(uploadPromises))
-        .then(async (pictures) => {
+            .then(async (pictures) => {
 
-            for (let i = 0; i < pictures.length; i++) {
-            const { secure_url, public_id } = pictures[i];
-            pictureUrls.push(secure_url);
-            picPublicIds.push(public_id);
-            }
+                for (let i = 0; i < pictures.length; i++) {
+                    const { secure_url, public_id } = pictures[i];
+                    pictureUrls.push(secure_url);
+                    picPublicIds.push(public_id);
+                }
 
-            await updateUser(userId, {
-                name, picPublicIds, pictureUrls
+                await updateUser(userId, {
+                    name, picPublicIds, pictureUrls
+                })
             })
-        })
 
     } catch (err) {
         next(err);
@@ -122,11 +125,11 @@ const getAllUsers = async (req, res, next) => {
         const endDate = new Date(end)
 
         // stages
-        const dateFilter = { 
-            createdAt: { 
+        const dateFilter = {
+            createdAt: {
                 $gte: startDate,
                 $lt: endDate
-            } 
+            }
         }
         const matchStage = {
             $or: [
@@ -139,13 +142,13 @@ const getAllUsers = async (req, res, next) => {
         const limitStage = limit * 1
         const skipStage = (page - 1) * limit
 
-        const users = await Users.aggregate([ 
+        const users = await Users.aggregate([
             { $match: dateFilter },
-            { $match: matchStage },  
+            { $match: matchStage },
             { $project: projectStage },
             { $sort: { id: -1 } },
             { $skip: skipStage },
-            { $limit: limitStage }      
+            { $limit: limitStage }
         ])
 
         return res.status(200).json({ status: 200, users })
@@ -192,28 +195,109 @@ const updateUser = async (req, res, next) => {
         const picPublicIds = [];
 
         Promise.all(deletePromises).then(() => Promise.all(uploadPromises))
-        .then(async (pictures) => {
+            .then(async (pictures) => {
 
-            for (let i = 0; i < pictures.length; i++) {
-            const { secure_url, public_id } = pictures[i];
-            pictureUrls.push(secure_url);
-            picPublicIds.push(public_id);
-            }
+                for (let i = 0; i < pictures.length; i++) {
+                    const { secure_url, public_id } = pictures[i];
+                    pictureUrls.push(secure_url);
+                    picPublicIds.push(public_id);
+                }
 
-            await updateUser(req.params.id, {
-                name, picPublicIds, pictureUrls
+                await updateUser(req.params.id, {
+                    name, picPublicIds, pictureUrls
+                })
             })
-        })
 
     } catch (err) {
         next(err);
     }
 }
 
+const createDeliveryBoy = async (req, res, next) => {
+    try {
+        const { email, phoneNumber, vehicleType, vehicleNumber, buildingNo, street, quarter, township, city, state } = req.body
+        if (!phoneNumber || !vehicleType || !vehicleNumber || !buildingNo || !street || !quarter || !township || !city || !state) {
+            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
+        }
+
+        const address = {
+            buildingNo, street, quarter, township, city, state
+        }
+
+        const { _id } = await Users.findOne({ email })
+
+        // create custom id
+        const id = await createCustomId(DeliveryBoys, "D")
+
+        if (id) {
+
+            const newDeliveryBoy = new DeliveryBoys({
+                id, userId: _id, phoneNumber, vehicleType, vehicleNumber, address, status: 'inactive'
+            });
+
+            const savedDeliveryBoy = await newDeliveryBoy.save();
+
+            return res.status(201).json({ status: 201, deliveryBoyId: savedDeliveryBoy._id, msg: "New Delivery Boy has been successfully created!" });
+        }
+
+    } catch (err) {
+        next(err)
+    }
+}
+
+const getAllDeliveryBoys = async (req, res, next) => {
+    try{
+
+        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", name = "" } = req.query;
+
+        const startDate = new Date(start)
+        const endDate = new Date(end)
+
+        // stages
+        const dateFilter = {
+            createdAt: {
+                $gte: startDate,
+                $lt: endDate
+            }
+        }        
+        const userLookup = {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userDetail",
+        }
+        const matchStage = {
+            $or: [
+                { "userDetail.name": { $regex: name } }
+            ],
+        }
+        const projectStage = {
+            "userDetail.password": 0
+        }
+        const limitStage = limit * 1
+        const skipStage = (page - 1) * limit
+
+        const deliveryBoys = await DeliveryBoys.aggregate([
+            { $match: dateFilter },
+            { $lookup: userLookup },
+            { $match: matchStage },
+            { $project: projectStage },
+            { $sort: { id: -1 } },
+            { $skip: skipStage },
+            { $limit: limitStage }
+        ])
+
+        return res.status(200).json({ status: 200, deliveryBoys })
+
+    }catch(err){
+        next(err)
+    }
+}
+
 // ----------------------- can do only Super Admin -------------------------------
 
 const grantRole = async (req, res, next) => {
-    try{
+    try {
         // validation testing
         const { roleType } = req.body
         if (!roleType) {
@@ -224,7 +308,7 @@ const grantRole = async (req, res, next) => {
 
         return res.status(200).json({ status: 200, msg: `This user has been successfully granted as ${roleType}` })
 
-    }catch(err){
+    } catch (err) {
         next(err)
     }
 }
@@ -232,6 +316,9 @@ const grantRole = async (req, res, next) => {
 module.exports = {
     updatePassword,
     updateMe,
+
+    createDeliveryBoy,
+    getAllDeliveryBoys,
 
     getByUserId,
     getAllUsers,

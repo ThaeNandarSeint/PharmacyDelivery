@@ -52,6 +52,12 @@ const medicineSchema = new mongoose.Schema(
         default: "PharmacyDelivery/Users/default-profile-picture_nop9jb.webp",
       },
     ],
+
+    orderCount: {
+      type: Number,
+      default: 0
+    }
+
   },
   {
     timestamps: true,
