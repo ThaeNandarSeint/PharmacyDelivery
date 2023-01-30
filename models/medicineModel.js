@@ -56,6 +56,11 @@ const medicineSchema = new mongoose.Schema(
     orderCount: {
       type: Number,
       default: 0
+    },
+
+    avgRating: {
+      type: Number,
+      default: 0
     }
 
   },

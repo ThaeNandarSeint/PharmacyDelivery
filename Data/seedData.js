@@ -18,7 +18,7 @@ const insertData = async (Collection) => {
       await Medicines.insertMany(medicines)      
     }
 
-    console.log('Data successfully loaded!');
+    console.log('Data successfully inserted!');
 
   } catch (err) {
     console.log(err.message);

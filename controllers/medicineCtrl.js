@@ -248,24 +248,44 @@ const getByMedicineId = async (req, res, next) => {
 const getAllMedicines = async (req, res, next) => {
   try {
     // for one year
-    const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", name = "", title = "", companyName = "" } = req.query;
+    const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", below = 0, above = 10000, filterBy = "date", sortBy = "", name = "", title = "", companyName = "" } = req.query;
 
     const startDate = new Date(start)
     const endDate = new Date(end)
 
     // stages
+
+    // filter stage
     const dateFilter = {
       createdAt: {
         $gte: startDate,
         $lt: endDate
       }
     }
+    const priceFilter = {
+      price: {
+        $gte: (below * 1),
+        $lt: (above * 1)
+      }
+    }
+
+    let filterStage;
+
+    if(filterBy === "price"){
+      filterStage = priceFilter
+    }else {
+      filterStage = dateFilter
+    }
+    
+    // lookup stage
     const categoryLookup = {
       from: "categories",
       localField: "categoryId",
       foreignField: "_id",
       as: "categoryDetail",
     }
+
+    // 
     const matchStage = {
       $and: [
         { name: { $regex: name } },
@@ -274,15 +294,35 @@ const getAllMedicines = async (req, res, next) => {
       ],
     }
 
+    // 
+    let sortStage;
+
+    if(sortBy === "orderCount"){
+      sortStage = { orderCount: -1 }
+    } else
+    if(sortBy === "avgRating"){
+      sortStage = { avgRating: -1 }
+    } else
+    if(sortBy === "stocks"){
+      sortStage = { stocks: -1 }
+    } else
+    if(sortBy === "price"){
+      sortStage = { price: -1 }
+    } else
+    {
+      sortStage = { id: -1 }
+    }
+
+    // 
     const limitStage = limit * 1
     const skipStage = (page - 1) * limit
 
     const pipelines = [
-      { $match: dateFilter },
+      { $match: filterStage },
       { $lookup: categoryLookup },
       { $unwind: "$categoryDetail" },
       { $match: matchStage },
-      { $sort: { orderCount: -1 } },
+      { $sort: sortStage },
       { $skip: skipStage },
       { $limit: limitStage }
     ]

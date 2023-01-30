@@ -21,6 +21,12 @@ const categorySchema = new mongoose.Schema({
       default: 'PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
     }
   ],
-});
+},
+
+{
+  timestamps: true,
+}
+
+);
 
 module.exports = mongoose.model("Categories", categorySchema);
