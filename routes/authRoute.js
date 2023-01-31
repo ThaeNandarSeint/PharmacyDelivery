@@ -1,7 +1,7 @@
 const router = require('express').Router()
 
 // controllers
-const { register, activateEmail, login, forgotPassword, resetPassword, logout, storeOtp } = require('../controllers/authCtrl');
+const { register, activateEmail, login, forgotPassword, resetPassword, logout, storeOtp, googleLogin, facebookLogin } = require('../controllers/authCtrl');
 
 // middlewares
 const { resetAuth } = require('../middlewares/resetAuth')
@@ -27,6 +27,10 @@ router.post('/reset', resetAuth, resetPwValidator, resetPassword)
 // 2factor implementation
 router.post('/twoFactor', sendSms, storeOtp)
 router.post('/checkOtp', checkOtp)
+
+// 
+router.post('/google', googleLogin)
+router.post('/facebook', facebookLogin)
 
 router.get('/logout', userAuth, logout)
 

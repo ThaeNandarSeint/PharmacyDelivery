@@ -1,5 +1,11 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const { google } = require('googleapis')
+const { OAuth2 } = google.auth
+
+// 
+const client = new OAuth2(process.env.MAILING_SERVICE_CLIENT_ID)
+const fetch = require('node-fetch')
 
 // models
 const Users = require('../models/userModel')
@@ -57,7 +63,7 @@ const activateEmail = async (req, res, next) => {
     try {
         // check email activation token
         const { activation_token } = req.body
-        
+
         // verify token
         jwt.verify(activation_token, ACTIVATION_TOKEN_SECRET, async (err, user) => {
             if (err) {
@@ -81,8 +87,8 @@ const activateEmail = async (req, res, next) => {
                     name,
                     email,
                     password,
-                    pictureUrls: [ "https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp" ],
-                    picPublicIds: [ "PharmacyDelivery/Users/default-profile-picture_nop9jb.webp" ]
+                    pictureUrls: ["https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"],
+                    picPublicIds: ["PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"]
                 })
 
                 const savedUser = await newUser.save()
@@ -211,12 +217,122 @@ const storeOtp = async (req, res, next) => {
     }
 }
 
+// 
+const googleLogin = async (req, res, next) => {
+    try {
+
+        const { credential } = req.body
+        const verify = await client.verifyIdToken({ idToken: credential, audience: process.env.MAILING_SERVICE_CLIENT_ID })
+
+        const { email, email_verified, name, picture } = verify.payload
+
+        const password = email + process.env.GOOGLE_SECRET
+
+        const passwordHash = await bcrypt.hash(password, 12)
+
+        if (!email_verified) {
+            return res.status(400).json({ status: 400, msg: "Email verfication failed!" })
+        }
+
+        // 
+        const user = await Users.findOne({ email })
+
+        if (user) {
+            const isMatch = await bcrypt.compare(password, user.password)
+            if (!isMatch) {
+                return res.status(400).json({ status: 400, msg: "Wrong credentials!" })
+            }
+
+            // create token & save in cookies
+            const access_token = createAccessToken({ id: user._id })
+            res.cookie('access_token', access_token, cookieOptions)
+
+            return res.status(200).json({ status: 200, user, msg: "Login Success!" })
+        }
+        // create custom id
+        const id = await createCustomId(Users, "U")
+
+        if (id) {
+            const newUser = new Users({
+                id, name, email, password: passwordHash, pictureUrls: [picture]
+            })
+            const savedUser = await newUser.save()
+
+            // create token & save in cookies
+            const access_token = createAccessToken({ id: savedUser._id })
+            res.cookie('access_token', access_token, cookieOptions)
+
+            return res.status(201).json({ status: 201, user: savedUser, msg: "Account has been created!" })
+        }
+
+    } catch (err) {
+        next(err)
+    }
+}
+
+const facebookLogin = async (req, res, next) => {
+    try{
+
+        const { accessToken, userID } = req.body
+
+        const URL = `https://graph.facebook.com/${userID}?fields=id,name,email,picture&access_token=${accessToken}`
+
+        const data = await fetch(URL).then((res) => res.json()).then(res => { return res })
+
+        const { name, email, picture } = data
+
+        const password = email + process.env.FACEBOOK_SECRET
+
+        const passwordHash = await bcrypt.hash(password, 12)
+
+        // 
+        const user = await Users.findOne({ email })
+
+        if (user) {
+            const isMatch = await bcrypt.compare(password, user.password)
+            if (!isMatch) {
+                return res.status(400).json({ status: 400, msg: "Wrong credentials!" })
+            }
+
+            // create token & save in cookies
+            const access_token = createAccessToken({ id: user._id })
+            res.cookie('access_token', access_token, cookieOptions)
+
+            return res.status(200).json({ status: 200, user, msg: "Login Success!" })
+        }
+        // create custom id
+        const id = await createCustomId(Users, "U")
+
+        if (id) {
+            const newUser = new Users({
+                id, name, email, password: passwordHash, pictureUrls: picture.data.url
+            })
+            const savedUser = await newUser.save()
+
+            // create token & save in cookies
+            const access_token = createAccessToken({ id: savedUser._id })
+            res.cookie('access_token', access_token, cookieOptions)
+
+            return res.status(201).json({ status: 201, user: savedUser, msg: "Account has been created!" })
+        }
+
+    }catch(err){
+        next(err)
+    }
+}
+
 module.exports = {
     register,
     activateEmail,
+
     login,
     forgotPassword,
     resetPassword,
+
     logout,
+
     storeOtp,
+
+    googleLogin,
+    facebookLogin
 }
