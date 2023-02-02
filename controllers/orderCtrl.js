@@ -101,7 +101,16 @@ const approveOrder = async (req, res, next) => {
         const timeTaken = (7 * 24 * 60 * 60 * 1000) + (prepareTime * 1)  //default -> 1 week
         const deliveryTime = timeTaken / (24 * 60 * 60 * 1000)
 
-        const deliveryBoys = await DeliveryBoys.aggregate([{ $sample: { size: 1 } }])
+        const matchStage = {
+            status: { 
+                $eq: "inactive"
+            }
+        }
+
+        const deliveryBoys = await DeliveryBoys.aggregate([{ $match: matchStage }, { $sample: { size: 1 } }])   
+        if(deliveryBoys){
+            return res.status(400).json({ status: 400, msg: `All delivery boys are busy!` })
+        }
 
         const deliveryBoyId = deliveryBoys[0]._id
         const deliveryBoyStatus = deliveryBoys[0].status
@@ -109,14 +118,17 @@ const approveOrder = async (req, res, next) => {
         if (deliveryBoyStatus === "active") {
             return res.status(400).json({ status: 400, msg: `This delivery boy has been already on ${deliveryBoyStatus} stage!` })
         }
+        // create custom id
+        const id = await createCustomId(DeliveryInfos, "DI")
 
         const deliveryInfo = new DeliveryInfos({
-            deliveryTime, customerId: userId, deliveryFee, deliveryBoyId
+           id, deliveryTime, customerId: userId, deliveryFee, deliveryBoyId
         })
 
         await deliveryInfo.save()
 
         await Orders.findByIdAndUpdate(req.params.id, { status: "deliver" })
+        await DeliveryBoys.findByIdAndUpdate(deliveryBoyId, { status: "active" })
 
         const { email } = await Users.findById(userId)
 

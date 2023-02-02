@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema({
     // role
     roleType: {
         type: String,
-        enum: ['Superadmin', 'Admin', 'Supervisor', 'Operator'],
+        enum: ['Superadmin', 'Admin', 'Supervisor', 'Operator', 'DeliveryBoy'],
     },
 
     // medicine

@@ -216,7 +216,7 @@ const updateUser = async (req, res, next) => {
 const createDeliveryBoy = async (req, res, next) => {
     try {
         const { email, phoneNumber, vehicleType, vehicleNumber, buildingNo, street, quarter, township, city, state } = req.body
-        if (!phoneNumber || !vehicleType || !vehicleNumber || !buildingNo || !street || !quarter || !township || !city || !state) {
+        if (!email || !phoneNumber || !vehicleType || !vehicleNumber || !buildingNo || !street || !quarter || !township || !city || !state) {
             return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
         }
 
@@ -236,6 +236,10 @@ const createDeliveryBoy = async (req, res, next) => {
             });
 
             const savedDeliveryBoy = await newDeliveryBoy.save();
+
+            await Users.findByIdAndUpdate(_id, {
+                roleType: "DeliveryBoy"
+            })
 
             return res.status(201).json({ status: 201, deliveryBoyId: savedDeliveryBoy._id, msg: "New Delivery Boy has been successfully created!" });
         }
