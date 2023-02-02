@@ -192,6 +192,10 @@ const addToFavourite = async (req, res, next) => {
 
     const { favouriteMedicines } = req.body
 
+    if (!favouriteMedicines) {
+      return res.status(404).json({ status: false, message: "Required to add favourite medicine!" });
+    }
+
     await Users.findByIdAndUpdate(userId, {
       favouriteMedicines
     })

@@ -4,7 +4,7 @@ const activateEmailHtml = (url, text) => {
         <h2 style="text-align: center; text-transform: uppercase;color: #009688;">Welcome From Pharmacy Delivery App</h2>
         <p>Congratulations! You're almost set to start using Pharmacy Delivery App.
             Just click the button below to validate your email address. 
-            <span style="color: red">This token will be expired in 5 minutes !</span>
+            <span style="color: red">This token will be expired in 10 minutes !</span>
         </p>
         
         <a href=${url} style="background: crimson; text-decoration: none; color: white; padding: 10px 20px; margin: 10px 0; display: inline-block;">${text}</a>

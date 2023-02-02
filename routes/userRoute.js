@@ -22,7 +22,4 @@ router.put('/:id', roleAuth("Superadmin", "Admin"), profileUpdateValidator, upda
 
 router.put('/:id/grant', roleAuth("Superadmin"), grantRole)
 
-// test
-router.get('/', roleAuth, getAllUsers)
-
 module.exports = router;

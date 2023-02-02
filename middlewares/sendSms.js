@@ -9,6 +9,7 @@ const vonage = new Vonage({
 })
 
 const sendSms = async (req, res, next) => {
+
     const { userId, phoneNumber } = req.body
 
     const userPhone = await Otps.findOne({ phoneNumber })
@@ -29,7 +30,7 @@ const sendSms = async (req, res, next) => {
         const { messageId } = result.messages[0]
         
         if(!messageId){
-            return res.status(500).json({ status: false, msg: "Error in sending the message!" })
+            return res.status(500).json({ status: false, otp, msg: "Error in sending the message!" })
         }
         
         req.smsData = {
@@ -40,8 +41,7 @@ const sendSms = async (req, res, next) => {
         next()
 
     }catch(err){
-        console.log('Error in sending the message.');
-        console.error(err);
+        next(err)
     }
 }
 
