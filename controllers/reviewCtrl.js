@@ -132,7 +132,12 @@ const deleteReview = async (req, res, next) => {
     const deletePromises = deleteImages(picPublicIds)
     Promise.all(deletePromises).then(async () => {
 
+      const { medicineId } = await Reviews.findById(req.params.id)
+
       await Reviews.findByIdAndDelete(req.params.id);
+
+      updateAvgRating(medicineId)
+      
       return res.status(200).json({ status: 200, msg: "Your review has been successfully deleted!" });
 
     }).catch((err) => {
