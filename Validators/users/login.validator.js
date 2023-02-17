@@ -1,8 +1,8 @@
 const joi = require("joi");
 
 const validation = joi.object({
-     email: joi.string().email().trim(true).required(),
-     password: joi.string().min(8).trim(true).required()
+	email: joi.string().email().trim(true).required(),
+	password: joi.string().min(8).trim(true).required()
 });
 
 const loginValidator = async (req, res, next) => {
@@ -11,10 +11,12 @@ const loginValidator = async (req, res, next) => {
 
 	const { error } = validation.validate(payload);
 	if (error) {
-		
-		return res.status(406).json({ status: 406, msg: error.message });
 
-	} else {		
+		const err = new Error(error.message);
+		err.status = 406;
+		return next(err)
+
+	} else {
 		next();
 	}
 };

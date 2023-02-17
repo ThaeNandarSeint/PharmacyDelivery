@@ -20,6 +20,16 @@ app.use(
   })
 );
 
+// build server
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+
+app.get('/', (req, res) => {
+  return res.status(200).json({ statusCode: 200, payload: {  }, message: 'Server is running!' })
+})
+
 // routes
 const authRoute = require("./routes/auth.route");
 const userRoute = require("./routes/user.route");
@@ -41,12 +51,6 @@ app.use("/api/orders", userAuth, orderRoute);
 app.use("/api/messages", userAuth, messageRoute);
 app.use("/api/deliveryPersons", userAuth, deliveryPersonRoute);
 app.use("/api/reviews", userAuth, reviewRoute);
-
-// build server
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
 
 // socket setup
 const socket = require("socket.io");

@@ -8,7 +8,7 @@ const validation = joi.object({
 
 const reviewValidator = async (req, res, next) => {
 
-    const { name } = Users.findById(req.user.id)
+  const { name } = Users.findById(req.user.id)
 
   const payload = { text: req.body.text }
 
@@ -16,7 +16,9 @@ const reviewValidator = async (req, res, next) => {
 
   if (error) {
 
-    return res.status(406).json({ status: 406, msg: error.message });
+    const err = new Error(error.message);
+    err.status = 406;
+    return next(err)
 
   } else {
 
@@ -27,5 +29,5 @@ const reviewValidator = async (req, res, next) => {
 };
 
 module.exports = {
-    reviewValidator
+  reviewValidator
 };

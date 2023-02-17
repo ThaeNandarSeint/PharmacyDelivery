@@ -1,7 +1,7 @@
 const joi = require("joi");
 
 const validation = joi.object({
-     email: joi.string().email().trim(true).required()
+	email: joi.string().email().trim(true).required()
 });
 
 const forgetPwValidator = async (req, res, next) => {
@@ -11,10 +11,12 @@ const forgetPwValidator = async (req, res, next) => {
 
 	const { error } = validation.validate(payload);
 	if (error) {
-		
-		return res.status(406).json({ status: 406, msg: error.message });
 
-	} else {		
+		const err = new Error(error.message);
+		err.status = 406;
+		return next(err)
+
+	} else {
 		next();
 	}
 };

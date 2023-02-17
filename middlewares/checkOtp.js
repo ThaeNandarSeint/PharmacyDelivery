@@ -6,29 +6,36 @@ const Users = require('../models/user.model')
 
 // helpers
 const { createAccessToken } = require('../helpers/createTokens')
-const { cookieOptions } = require('../helpers/cookieOptions')
 
 const checkOtp = async (req, res, next) => {
     try{
         const { userId, otp } = req.body
         if(!userId || !otp){
-            return res.status(400).json({ status: false, msg: "Important information are required!" })
+            const error = new Error("Important information are required!");
+                error.status = 400;
+                return next(error)
         }
 
         const otpCode = await Otps.findOne({ userId })
         
         if(!otpCode.otp){
-            return res.status(400).json({ status: false, msg: "OTP is not found!" })
+            const error = new Error("OTP is not found!");
+                error.status = 400;
+                return next(error)
         }
         const { expiresAt } = await Otps.findOne({ userId })
         if(expiresAt < Date.now()){
             await Otps.deleteMany({ expiresAt })
-            return res.status(400).json({ status: false, msg: "Code has expired. Please request again!" })
+            const error = new Error("Code has expired. Please request again!");
+                error.status = 400;
+                return next(error)
         }
 
         const isValid = await bcrypt.compare(otp, otpCode.otp)
         if(!isValid){
-            return res.status(400).json({ status: false, msg: "Wrong code. Please check your message again!" })
+            const error = new Error("Wrong code. Please check your message again!");
+            error.status = 400;
+            return next(error)
         }
 
         const { isTwoFactor } = await Users.findById(userId) 
@@ -39,19 +46,18 @@ const checkOtp = async (req, res, next) => {
                 phoneNumber: otpCode.phoneNumber
             })
             await Otps.deleteMany({ otp: otpCode.otp })
-            return res.json({ status: true, msg: "Success!" })
+
+            return res.status(200).json({ statusCode: 200, payload: {  }, message: "Success!" })
         }       
 
-        const access_token = createAccessToken({ id: userId })        
-        res.cookie('access_token', access_token, cookieOptions)
+        const accessToken = createAccessToken({ id: userId })
 
         await Otps.deleteMany({ otp: otpCode.otp })
 
-        return res.json({ status: true, msg: "Success!" })
+        return res.status(200).json({ statusCode: 200, payload: { accessToken }, message: "Success!" })
 
     }catch(err){
         next(err);
-        return res.status(500).json({ status: false, msg: err.message })
     }
 }
 
