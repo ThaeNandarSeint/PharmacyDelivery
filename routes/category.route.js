@@ -7,7 +7,7 @@ const { getAllCategories, createCategory, updateCategory, deleteCategory, getByC
 const { roleAuth } = require('../middlewares/roleAuth');
 
 //validation middlewares
-const { categoryValidator } = require("../Validators/categories/category.validator");
+const { categoryValidator } = require("../validators/categories/category.validator");
 
 router.post("/", roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, createCategory);
 router.put("/:id", roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, updateCategory);

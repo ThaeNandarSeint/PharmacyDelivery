@@ -9,7 +9,7 @@ const { roleAuth } = require("../middlewares/roleAuth");
 // routes
 router.post('/', createOrder)
 router.put('/approve/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), approveOrder)
-router.put('/deliver/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operator", "DeliveryBoy"), deliverOrder)
+router.put('/deliver/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operator", "DeliveryPerson"), deliverOrder)
 
 // can do all users
 router.get("/", getAllOrders);
