@@ -1,8 +1,8 @@
 const bcrypt = require('bcrypt')
 
 // models
-const Otps = require('../models/otpModel')
-const Users = require('../models/userModel')
+const Otps = require('../models/otp.model')
+const Users = require('../models/user.model')
 
 // helpers
 const { createAccessToken } = require('../helpers/createTokens')

@@ -1,5 +1,5 @@
 // models
-const Users = require('../models/userModel')
+const Users = require('../models/user.model')
 
 const roleAuth = (...allowedRoles) => {
     return async (req, res, next) => {

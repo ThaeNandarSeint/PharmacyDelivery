@@ -9,8 +9,8 @@ cloudinary.config({
 })
 
 // models
-const Users = require("../models/userModel");
-const DeliveryBoys = require('../models/deliveryBoyModel')
+const Users = require("../models/user.model");
+const DeliveryPersons = require('../models/deliveryPerson.model')
 
 // services
 const { uploadImages } = require('../services/uploadImages');
@@ -20,20 +20,21 @@ const { createCustomId } = require('../services/createCustomId');
 const updatePassword = async (req, res, next) => {
     try {
         const { currentPassword, newPassword } = req.body;
-        if (!currentPassword || !newPassword) {
-            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
-        }
 
         const userId = req.user.id
 
         const user = await Users.findById(userId);
         if (!user) {
-            return res.status(400).json({ status: 400, msg: "Something went wrong!" });
+            const error = new Error("Something went wrong!");
+            error.status = 400;
+            return next(error)
         }
         // check password
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
-            return res.status(400).json({ status: 400, msg: "Current password is incorrect!" });
+            const error = new Error("Current password is incorrect!");
+            error.status = 400;
+            return next(error)
         }
         // change password
         const passwordHash = await bcrypt.hash(newPassword, 12);
@@ -42,7 +43,7 @@ const updatePassword = async (req, res, next) => {
             password: passwordHash,
         })
 
-        return res.status(200).json({ status: 200, msg: "Your password has been successfully changed!" })
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "Your password has been successfully changed!" })
 
     } catch (err) {
         next(err);
@@ -52,9 +53,6 @@ const updatePassword = async (req, res, next) => {
 const updateMe = async (req, res, next) => {
     try {
         const { name } = req.body
-        if (!name) {
-            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
-        }
 
         const userId = req.user.id
 
@@ -78,7 +76,7 @@ const updateMe = async (req, res, next) => {
 
         const updateUser = async (userId, payload) => {
             await Users.findByIdAndUpdate(userId, payload);
-            return res.status(200).json({ status: 200, msg: "Your profile has been successfully updated!" })
+            return res.status(200).json({ statusCode: 200, payload: {}, message: "Your profile has been successfully updated!" })
         }
 
         // include photo in request body
@@ -109,7 +107,7 @@ const getByUserId = async (req, res, next) => {
 
         const user = await Users.findById(req.params.id).select('-password')
 
-        return res.status(200).json({ status: 200, user })
+        return res.status(200).json({ statusCode: 200, payload: { user }, message: "" })
 
     } catch (err) {
         next(err);
@@ -119,7 +117,7 @@ const getByUserId = async (req, res, next) => {
 // get all users
 const getAllUsers = async (req, res, next) => {
     try {
-        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", name = "" } = req.query;
+        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", userName = "" } = req.query;
 
         const startDate = new Date(start)
         const endDate = new Date(end)
@@ -133,7 +131,7 @@ const getAllUsers = async (req, res, next) => {
         }
         const matchStage = {
             $or: [
-                { name: { $regex: name } }
+                { name: { $regex: userName } }
             ],
         }
         const projectStage = {
@@ -151,7 +149,7 @@ const getAllUsers = async (req, res, next) => {
             { $limit: limitStage }
         ])
 
-        return res.status(200).json({ status: 200, users })
+        return res.status(200).json({ statusCode: 200, payload: { users }, message: "" })
 
     } catch (err) {
         next(err);
@@ -160,65 +158,59 @@ const getAllUsers = async (req, res, next) => {
 
 // ----------------------- can do only SuperAdmin & Admin -------------------------------
 
-const updateUser = async (req, res, next) => {
-    try {
-        const { name } = req.body
-        if (!name) {
-            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
-        }
+// const updateUser = async (req, res, next) => {
+//     try {
+//         const { name } = req.body
 
-        const user = await Users.findById(req.params.id)
+//         const user = await Users.findById(req.params.id)
 
-        let deletePromises = []
+//         let deletePromises = []
 
-        let oldPicPublicIds = user.picPublicIds
-        let oldPictureUrls = user.pictureUrls
+//         let oldPicPublicIds = user.picPublicIds
+//         let oldPictureUrls = user.pictureUrls
 
-        // already exist photo in database
-        if (oldPicPublicIds[0] !== "" && oldPictureUrls[0] !== "") {
-            // delete old picture from cloudinary
-            deletePromises = deleteImages(oldPicPublicIds)
+//         // already exist photo in database
+//         if (oldPicPublicIds[0] !== "" && oldPictureUrls[0] !== "") {
+//             // delete old picture from cloudinary
+//             deletePromises = deleteImages(oldPicPublicIds)
 
-            oldPicPublicIds = [""];
-            oldPictureUrls = [""];
-        }
+//             oldPicPublicIds = [""];
+//             oldPictureUrls = [""];
+//         }
 
-        const uploadPromises = uploadImages(req.files, req.folderName)
+//         const uploadPromises = uploadImages(req.files, req.folderName)
 
-        const updateUser = async (userId, payload) => {
-            await Users.findByIdAndUpdate(userId, payload);
-            return res.status(200).json({ status: 200, msg: "This user's profile has been successfully updated!" })
-        }
+//         const updateUser = async (userId, payload) => {
+//             await Users.findByIdAndUpdate(userId, payload);
+//             return res.status(200).json({ statusCode: 200, payload: {  }, message: "This user's profile has been successfully updated!" })
+//         }
 
-        // include photo in request body
-        const pictureUrls = [];
-        const picPublicIds = [];
+//         // include photo in request body
+//         const pictureUrls = [];
+//         const picPublicIds = [];
 
-        Promise.all(deletePromises).then(() => Promise.all(uploadPromises))
-            .then(async (pictures) => {
+//         Promise.all(deletePromises).then(() => Promise.all(uploadPromises))
+//             .then(async (pictures) => {
 
-                for (let i = 0; i < pictures.length; i++) {
-                    const { secure_url, public_id } = pictures[i];
-                    pictureUrls.push(secure_url);
-                    picPublicIds.push(public_id);
-                }
+//                 for (let i = 0; i < pictures.length; i++) {
+//                     const { secure_url, public_id } = pictures[i];
+//                     pictureUrls.push(secure_url);
+//                     picPublicIds.push(public_id);
+//                 }
 
-                await updateUser(req.params.id, {
-                    name, picPublicIds, pictureUrls
-                })
-            })
+//                 await updateUser(req.params.id, {
+//                     name, picPublicIds, pictureUrls
+//                 })
+//             })
 
-    } catch (err) {
-        next(err);
-    }
-}
+//     } catch (err) {
+//         next(err);
+//     }
+// }
 
-const createDeliveryBoy = async (req, res, next) => {
+const createDeliveryPerson = async (req, res, next) => {
     try {
         const { email, phoneNumber, vehicleType, vehicleNumber, buildingNo, street, quarter, township, city, state } = req.body
-        if (!email || !phoneNumber || !vehicleType || !vehicleNumber || !buildingNo || !street || !quarter || !township || !city || !state) {
-            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
-        }
 
         const address = {
             buildingNo, street, quarter, township, city, state
@@ -227,21 +219,21 @@ const createDeliveryBoy = async (req, res, next) => {
         const { _id } = await Users.findOne({ email })
 
         // create custom id
-        const id = await createCustomId(DeliveryBoys, "D")
+        const id = await createCustomId(DeliveryPersons, "D")
 
         if (id) {
 
-            const newDeliveryBoy = new DeliveryBoys({
+            const newDeliveryPerson = new DeliveryPersons({
                 id, userId: _id, phoneNumber, vehicleType, vehicleNumber, address, status: 'inactive'
             });
 
-            const savedDeliveryBoy = await newDeliveryBoy.save();
+            const savedDeliveryPerson = await newDeliveryPerson.save();
 
             await Users.findByIdAndUpdate(_id, {
-                roleType: "DeliveryBoy"
+                roleType: "DeliveryPerson"
             })
 
-            return res.status(201).json({ status: 201, deliveryBoyId: savedDeliveryBoy._id, msg: "New Delivery Boy has been successfully created!" });
+            return res.status(201).json({ statusCode: 201, payload: { deliveryPerson: savedDeliveryPerson }, message: "New Delivery Person has been successfully created!" })
         }
 
     } catch (err) {
@@ -249,8 +241,8 @@ const createDeliveryBoy = async (req, res, next) => {
     }
 }
 
-const getAllDeliveryBoys = async (req, res, next) => {
-    try{
+const getAllDeliveryPersons = async (req, res, next) => {
+    try {
 
         const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", name = "" } = req.query;
 
@@ -263,7 +255,7 @@ const getAllDeliveryBoys = async (req, res, next) => {
                 $gte: startDate,
                 $lt: endDate
             }
-        }        
+        }
         const userLookup = {
             from: "users",
             localField: "userId",
@@ -281,7 +273,7 @@ const getAllDeliveryBoys = async (req, res, next) => {
         const limitStage = limit * 1
         const skipStage = (page - 1) * limit
 
-        const deliveryBoys = await DeliveryBoys.aggregate([
+        const deliveryPersons = await DeliveryPersons.aggregate([
             { $match: dateFilter },
             { $lookup: userLookup },
             { $match: matchStage },
@@ -291,9 +283,9 @@ const getAllDeliveryBoys = async (req, res, next) => {
             { $limit: limitStage }
         ])
 
-        return res.status(200).json({ status: 200, deliveryBoys })
+        return res.status(200).json({ statusCode: 200, payload: { deliveryPersons }, message: "" })
 
-    }catch(err){
+    } catch (err) {
         next(err)
     }
 }
@@ -304,13 +296,10 @@ const grantRole = async (req, res, next) => {
     try {
         // validation testing
         const { roleType } = req.body
-        if (!roleType) {
-            return res.status(400).json({ status: false, msg: "Some required information are missing!" });
-        }
 
         await Users.findByIdAndUpdate(req.params.id, { roleType })
 
-        return res.status(200).json({ status: 200, msg: `This user has been successfully granted as ${roleType}` })
+        return res.status(200).json({ statusCode: 200, payload: {}, message: `This user has been successfully granted as ${roleType}` })
 
     } catch (err) {
         next(err)
@@ -321,12 +310,12 @@ module.exports = {
     updatePassword,
     updateMe,
 
-    createDeliveryBoy,
-    getAllDeliveryBoys,
+    createDeliveryPerson,
+    getAllDeliveryPersons,
 
     getByUserId,
     getAllUsers,
 
-    updateUser,
+    // updateUser,
     grantRole
 };

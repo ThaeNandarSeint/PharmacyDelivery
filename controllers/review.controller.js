@@ -1,6 +1,8 @@
+const mongoose = require("mongoose");
+
 // models
-const Reviews = require('../models/reviewModel');
-const Medicines = require('../models/medicineModel');
+const Reviews = require('../models/review.model');
+const Medicines = require('../models/medicine.model');
 
 // services
 const { createCustomId } = require('../services/createCustomId');
@@ -12,11 +14,6 @@ const createReview = async (req, res, next) => {
 
     const { text, rating, medicineId } = req.body;
     const userId = req.user.id
-
-    // empty validation
-    if (!text || !rating || !medicineId) {
-      return res.status(400).json({ status: false, msg: "Some required information are missing!" });
-    }
 
     // create custom id
     const id = await createCustomId(Reviews, "R")
@@ -33,7 +30,7 @@ const createReview = async (req, res, next) => {
 
         updateAvgRating(medicineId)
 
-        return res.status(201).json({ status: 201, reviewId: savedReview._id, msg: "New Review has been successfully created!" });
+        return res.status(201).json({ statusCode: 201, payload: { review: savedReview }, message: "New Review has been successfully created!" })
 
       }
     }
@@ -65,11 +62,6 @@ const updateReview = async (req, res, next) => {
   try {
     const { text, rating, medicineId } = req.body;
     const userId = req.user.id
-
-    // empty validation
-    if (!text || !rating || !medicineId) {
-      return res.status(400).json({ status: false, msg: "Some required information are missing!" });
-    }
 
     const review = await Reviews.findById(req.params.id);
 
@@ -108,7 +100,7 @@ const updateReview = async (req, res, next) => {
 
         updateAvgRating(medicineId)
 
-        return res.status(200).json({ status: 200, msg: "Your Review has been successfully updated!" });
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "Your Review has been successfully updated!" })
 
       })
 
@@ -125,7 +117,7 @@ const deleteReview = async (req, res, next) => {
     // not include photo
     if (picPublicIds[0] === "") {
       await Reviews.findByIdAndDelete(req.params.id);
-      return res.status(200).json({ status: 200, msg: "Your review has been successfully deleted!" });
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your review has been successfully deleted!" })
     }
 
     // include photo
@@ -137,8 +129,8 @@ const deleteReview = async (req, res, next) => {
       await Reviews.findByIdAndDelete(req.params.id);
 
       updateAvgRating(medicineId)
-      
-      return res.status(200).json({ status: 200, msg: "Your review has been successfully deleted!" });
+
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your review has been successfully deleted!" })
 
     }).catch((err) => {
 
@@ -191,7 +183,7 @@ const getAllReviews = async (req, res, next) => {
       { $limit: limitStage }
     ])
 
-    return res.status(200).json({ status: 200, reviews });
+    return res.status(200).json({ statusCode: 200, payload: { reviews }, message: "" })
 
   } catch (err) {
     next(err);
@@ -203,7 +195,7 @@ const getByReviewId = async (req, res, next) => {
 
     const review = await Reviews.findById(req.params.id);
 
-    return res.status(200).json({ status: 200, review });
+    return res.status(200).json({ statusCode: 200, payload: { review }, message: "" })
 
   } catch (err) {
     next(err);
@@ -213,12 +205,19 @@ const getByReviewId = async (req, res, next) => {
 
 // functions
 const updateAvgRating = async (medicineId) => {
-  const reviews = await Reviews.aggregate([{ $group: { _id: null, avgRating: { $avg: "$rating" } } }])
+
+  const reviews = await Reviews.aggregate([
+    { 
+      $match: { medicineId: new mongoose.Types.ObjectId(medicineId) }     
+    }, 
+    { $group: { _id: null, avgRating: { $avg: "$rating" } } }
+  ])
   const avgRating = reviews[0].avgRating.toFixed(1)
 
   await Medicines.findByIdAndUpdate(medicineId, {
     avgRating
   })
+
 }
 
 module.exports = {

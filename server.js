@@ -14,7 +14,6 @@ app.use(express.json({ limit: "10mb" }));
 app.use(cors());
 app.use(cookieParser());
 
-// // to upload file from form data
 app.use(
   fileUpload({
     useTempFiles: true,
@@ -22,16 +21,14 @@ app.use(
 );
 
 // routes
-const authRoute = require("./routes/authRoute");
-const userRoute = require("./routes/userRoute");
-const categoryRoute = require("./routes/categoryRoute");
-const medicineRoute = require("./routes/medicineRoute");
-const orderRoute = require("./routes/orderRoute");
-const messageRoute = require("./routes/messageRoute");
-const deliveryBoyRoute = require("./routes/deliveryBoyRoute");
-const reviewRoute = require("./routes/reviewRoute");
-//
-const roleRoute = require("./routes/roleRoute");
+const authRoute = require("./routes/auth.route");
+const userRoute = require("./routes/user.route");
+const categoryRoute = require("./routes/category.route");
+const medicineRoute = require("./routes/medicine.route");
+const orderRoute = require("./routes/order.route");
+const messageRoute = require("./routes/message.route");
+const deliveryPersonRoute = require("./routes/deliveryPerson.route");
+const reviewRoute = require("./routes/review.route");
 
 // middlewares
 const { userAuth } = require("./middlewares/userAuth");
@@ -42,10 +39,8 @@ app.use("/api/categories", userAuth, categoryRoute);
 app.use("/api/medicines", userAuth, medicineRoute);
 app.use("/api/orders", userAuth, orderRoute);
 app.use("/api/messages", userAuth, messageRoute);
-app.use("/api/deliveryBoys", userAuth, deliveryBoyRoute);
+app.use("/api/deliveryPersons", userAuth, deliveryPersonRoute);
 app.use("/api/reviews", userAuth, reviewRoute);
-//
-// app.use("/api/roles", userAuth, roleRoute);
 
 // build server
 const PORT = process.env.PORT || 5000;
@@ -98,9 +93,5 @@ app.use((req, res, next) => {
 });
 app.use((error, req, res, next) => {
   res.status(error.status || 500);
-  res.json({
-    error: {
-      message: error.message,
-    },
-  });
+  return res.status(error.status).json({ statusCode: error.status, payload: {  }, message: error.message })
 });

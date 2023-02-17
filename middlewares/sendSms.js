@@ -1,7 +1,7 @@
 const { Vonage } = require('@vonage/server-sdk')
 
 // models
-const Otps = require('../models/otpModel')
+const Otps = require('../models/otp.model')
 
 const vonage = new Vonage({
   apiKey: process.env.SMS_API_KEY,

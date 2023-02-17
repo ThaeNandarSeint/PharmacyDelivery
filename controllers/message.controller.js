@@ -1,4 +1,4 @@
-const Messages = require("../models/messageModel");
+const Messages = require("../models/message.model");
 
 // get all messages
  const getMessages = async (req, res, next) => {
@@ -58,7 +58,7 @@ const Messages = require("../models/messageModel");
             };
         });
 
-        return res.status(200).json({ status: 200, projectedMessages })
+        return res.status(200).json({ statusCode: 200, payload: { messages: projectedMessages }, message: "" })
 
     } catch (err) {
         next(err);
@@ -78,10 +78,10 @@ const createMessage = async (req, res, next) => {
 
         const savedMessage = await newMessage.save()
 
-        return res.status(201).json({ status: 201, messageId: savedMessage._id, msg: "New message has been successfully added!" })
+        return res.status(201).json({ statusCode: 201, payload: { message: savedMessage }, message: "New message has been successfully added!" })
 
-    } catch (ex) {
-        next(ex);
+    } catch (err) {
+        next(err);
     }
 };
 module.exports = {

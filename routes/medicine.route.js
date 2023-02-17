@@ -7,12 +7,9 @@ const {
   deleteMedicine,
   getAllMedicines,
   getByMedicineId,
-  getAllExpiredMedicines,
-  getAllStocks,
-  getAllOutOfStocks,
   addToFavourite,
   getAllFavouriteMedicines,
-} = require("../controllers/medicineCtrl");
+} = require("../controllers/medicine.controller");
 
 // middlewares
 const { roleAuth } = require("../middlewares/roleAuth");
@@ -20,7 +17,7 @@ const { roleAuth } = require("../middlewares/roleAuth");
 //validation middlewares
 const {
   medicineValidator,
-} = require("../validators/medicines/medicineValidator");
+} = require("../validators/medicines/medicine.validator");
 
 // routes
 router.post(
@@ -41,16 +38,11 @@ router.delete(
   deleteMedicine
 );
 
-// can do all users
+//---------------------- can do all users ----------------------
+router.get("/", getAllMedicines);
+router.get("/:id", getByMedicineId);
+
 router.put('/favourite/add', addToFavourite)
 router.get('/favourite/get', getAllFavouriteMedicines)
-
-// 
-router.get("/", getAllMedicines);
-router.get("/expired", getAllExpiredMedicines);
-router.get("/stocks", getAllStocks);
-router.get("/outOfStocks", getAllOutOfStocks);
-
-router.get("/:id", getByMedicineId);
 
 module.exports = router;

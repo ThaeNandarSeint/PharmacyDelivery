@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const deliveryBoySchema = new mongoose.Schema(
+const deliveryPersonSchema = new mongoose.Schema(
   {
     id: {
       type: String,
@@ -27,7 +27,7 @@ const deliveryBoySchema = new mongoose.Schema(
 
     status: {
         type: String,
-        enum: ['pending', 'active', 'inactive'],
+        enum: ['active', 'inactive'],
     },
 
     address: {
@@ -63,4 +63,4 @@ const deliveryBoySchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("DeliveryBoys", deliveryBoySchema);
+module.exports = mongoose.model("DeliveryPersons", deliveryPersonSchema);

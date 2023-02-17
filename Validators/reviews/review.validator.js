@@ -1,6 +1,6 @@
 const joi = require("joi");
 
-const Users = require('../../models/userModel')
+const Users = require('../../models/user.model')
 
 const validation = joi.object({
   text: joi.string().trim(true).required(),

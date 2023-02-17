@@ -8,30 +8,31 @@ const client = new OAuth2(process.env.MAILING_SERVICE_CLIENT_ID)
 const fetch = require('node-fetch')
 
 // models
-const Users = require('../models/userModel')
-const Otps = require('../models/otpModel')
+const Users = require('../models/user.model')
+const Otps = require('../models/otp.model')
 
 // helpers
 const { createActivationToken, createAccessToken } = require('../helpers/createTokens')
-const { cookieOptions } = require('../helpers/cookieOptions')
 const { activateEmailHtml } = require('../helpers/activateEmailHtml')
 
 // services
 const sendMail = require('../services/sendMail')
 const { createCustomId } = require('../services/createCustomId')
 
-// from dot env
+// 
 const ACTIVATION_TOKEN_SECRET = process.env.ACTIVATION_TOKEN_SECRET
 const CLIENT_URL = process.env.CLIENT_URL
 
-// register
+// 
 const register = async (req, res, next) => {
     try {
         const { name, email, password } = req.body
         // unique validation
         const userEmail = await Users.findOne({ email })
         if (userEmail) {
-            return res.status(400).json({ status: 400, msg: "This email already exists!" })
+            const error = new Error("This email already exists!");
+            error.status = 400;
+            return next(error)
         }
 
         // create user model
@@ -51,14 +52,14 @@ const register = async (req, res, next) => {
 
         sendMail(email, html)
 
-        return res.status(200).json({ status: 200, msg: "Register Success! Please activate your email to start" })
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "Register Success! Please activate your email to start!" })
 
     } catch (err) {
         next(err);
     }
 }
 
-// activate email
+// 
 const activateEmail = async (req, res, next) => {
     try {
         // check email activation token
@@ -67,14 +68,18 @@ const activateEmail = async (req, res, next) => {
         // verify token
         jwt.verify(activation_token, ACTIVATION_TOKEN_SECRET, async (err, user) => {
             if (err) {
-                return res.status(400).json({ status: false, msg: err.message })
+                const error = new Error(err.message);
+                error.status = 400;
+                return next(error)
             }
             const { name, email, password } = user
 
-            // // unique validation
+            // unique validation
             const userEmail = await Users.findOne({ email })
             if (userEmail) {
-                return res.status(400).json({ status: 400, msg: "This email already exists!" })
+                const error = new Error("This email already exists!");
+                error.status = 400;
+                return next(error)
             }
 
             // create custom id
@@ -93,11 +98,10 @@ const activateEmail = async (req, res, next) => {
 
                 const savedUser = await newUser.save()
 
-                // create token & save in cookies
-                const access_token = createAccessToken({ id: savedUser._id })
-                res.cookie('access_token', access_token, cookieOptions)
+                // create token
+                const accessToken = createAccessToken({ id: savedUser._id })
 
-                return res.status(201).json({ status: 201, user: savedUser, msg: "Account has been created!" })
+                return res.status(201).json({ statusCode: 201, payload: { user: savedUser, accessToken }, message: "Account has been created!" })
             }
         })
 
@@ -106,7 +110,7 @@ const activateEmail = async (req, res, next) => {
     }
 }
 
-// login
+// 
 const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
@@ -114,40 +118,44 @@ const login = async (req, res, next) => {
         // check email
         const user = await Users.findOne({ email })
         if (!user) {
-            return res.status(400).json({ status: 400, msg: "Wrong credentials!" })
+            const error = new Error("Wrong credentials!");
+            error.status = 400;
+            return next(error)
         }
         // check password
         const isMatch = await bcrypt.compare(password, user.password)
         if (!isMatch) {
-            return res.status(400).json({ status: 400, msg: "Wrong credentials!" })
+            const error = new Error("Wrong credentials!");
+            error.status = 400;
+            return next(error)
         }
 
         // check if two factor or not
         const { isTwoFactor, phoneNumber, _id } = user
         if (isTwoFactor) {
             req.body = { ...req.body, isTwoFactor, phoneNumber, userId: _id }
-            next();
-            return;
+            return next();
         }
 
-        // create token & save in cookies
-        const access_token = createAccessToken({ id: user._id })
-        res.cookie('access_token', access_token, cookieOptions)
+        // create token
+        const accessToken = createAccessToken({ id: user._id })
 
-        return res.status(200).json({ status: 200, user, msg: "Login Success!" })
+        return res.status(200).json({ statusCode: 200, payload: { user, accessToken }, message: "Login Success!" })
 
     } catch (err) {
         next(err);
     }
 }
 
-// forgotPassword
+// 
 const forgotPassword = async (req, res, next) => {
     try {
         const { email } = req.body
         const user = await Users.findOne({ email })
         if (!user) {
-            return res.status(400).json({ status: 400, msg: "This email does not exist!" })
+            const error = new Error("This email does not exist!");
+            error.status = 400;
+            return next(error)
         }
 
         // create token & send email
@@ -159,14 +167,14 @@ const forgotPassword = async (req, res, next) => {
 
         sendMail(email, html)
 
-        return res.status(200).json({ status: 200, msg: "Already resend your password, please check your email !" })
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "Already resend your password, please check your email!" })
 
     } catch (err) {
         next(err);
     }
 }
 
-// reset password
+// 
 const resetPassword = async (req, res, next) => {
     try {
         const { password } = req.body
@@ -175,18 +183,18 @@ const resetPassword = async (req, res, next) => {
         const user = await Users.findOneAndUpdate({ _id: req.user.id }, {
             password: passwordHash
         })
-        return res.status(200).json({ status: 200, user, msg: "Password is successfully changed!" })
+        return res.status(200).json({ statusCode: 200, payload: { user }, message: "Password is successfully changed!" })
 
     } catch (err) {
         next(err);
     }
 }
 
-// logout
+// 
 const logout = async (req, res, next) => {
     try {
-        res.clearCookie('access_token', { path: '/api' })
-        return res.status(200).json({ status: 200, msg: "Logged out!" })
+        // res.clearCookie('access_token', { path: '/api' })
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "Logged out!" })
 
     } catch (err) {
         next(err);
@@ -209,11 +217,10 @@ const storeOtp = async (req, res, next) => {
         })
         await newOtp.save()
 
-        return res.json({ status: true, otp, msg: "OTP is sent" })
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "OTP is sent!" })
 
     } catch (err) {
-        next(err);
-        return res.status(500).json({ status: false, msg: err.message })
+        next(err)
     }
 }
 
@@ -231,7 +238,9 @@ const googleLogin = async (req, res, next) => {
         const passwordHash = await bcrypt.hash(password, 12)
 
         if (!email_verified) {
-            return res.status(400).json({ status: 400, msg: "Email verfication failed!" })
+            const error = new Error("Wrong credentials!");
+            error.status = 400;
+            return next(error)
         }
 
         // 
@@ -240,14 +249,15 @@ const googleLogin = async (req, res, next) => {
         if (user) {
             const isMatch = await bcrypt.compare(password, user.password)
             if (!isMatch) {
-                return res.status(400).json({ status: 400, msg: "Wrong credentials!" })
+                const error = new Error("Wrong credentials!");
+                error.status = 400;
+                return next(error)
             }
 
-            // create token & save in cookies
-            const access_token = createAccessToken({ id: user._id })
-            res.cookie('access_token', access_token, cookieOptions)
+            // create token
+            const accessToken = createAccessToken({ id: user._id })
 
-            return res.status(200).json({ status: 200, user, msg: "Login Success!" })
+            return res.status(200).json({ statusCode: 200, payload: { user, accessToken }, message: "Login Success!" })
         }
         // create custom id
         const id = await createCustomId(Users, "U")
@@ -258,11 +268,10 @@ const googleLogin = async (req, res, next) => {
             })
             const savedUser = await newUser.save()
 
-            // create token & save in cookies
-            const access_token = createAccessToken({ id: savedUser._id })
-            res.cookie('access_token', access_token, cookieOptions)
+            // create token
+            const accessToken = createAccessToken({ id: savedUser._id })
 
-            return res.status(201).json({ status: 201, user: savedUser, msg: "Account has been created!" })
+            return res.status(201).json({ statusCode: 201, payload: { user: savedUser, accessToken }, message: "Account has been created!" })
         }
 
     } catch (err) {
@@ -271,7 +280,7 @@ const googleLogin = async (req, res, next) => {
 }
 
 const facebookLogin = async (req, res, next) => {
-    try{
+    try {
 
         const { accessToken, userID } = req.body
 
@@ -291,14 +300,15 @@ const facebookLogin = async (req, res, next) => {
         if (user) {
             const isMatch = await bcrypt.compare(password, user.password)
             if (!isMatch) {
-                return res.status(400).json({ status: 400, msg: "Wrong credentials!" })
+                const error = new Error("Wrong credentials!");
+                error.status = 400;
+                return next(error)
             }
 
-            // create token & save in cookies
-            const access_token = createAccessToken({ id: user._id })
-            res.cookie('access_token', access_token, cookieOptions)
+            // create token
+            const accessToken = createAccessToken({ id: user._id })
 
-            return res.status(200).json({ status: 200, user, msg: "Login Success!" })
+            return res.status(200).json({ statusCode: 200, payload: { user, accessToken }, message: "Login Success!" })
         }
         // create custom id
         const id = await createCustomId(Users, "U")
@@ -309,14 +319,13 @@ const facebookLogin = async (req, res, next) => {
             })
             const savedUser = await newUser.save()
 
-            // create token & save in cookies
-            const access_token = createAccessToken({ id: savedUser._id })
-            res.cookie('access_token', access_token, cookieOptions)
+            // create token
+            const accessToken = createAccessToken({ id: savedUser._id })
 
-            return res.status(201).json({ status: 201, user: savedUser, msg: "Account has been created!" })
+            return res.status(201).json({ statusCode: 201, payload: { user, accessToken }, message: "Account has been created!" })
         }
 
-    }catch(err){
+    } catch (err) {
         next(err)
     }
 }

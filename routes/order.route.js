@@ -1,13 +1,13 @@
 const router = require('express').Router()
 
 // controllers
-const { createOrder, getAllOrders, getByOrderId, approveOrder, cancelOrder, deliverOrder } = require('../controllers/orderCtrl');
+const { createOrder, getAllOrders, getByOrderId, approveOrder, cancelOrder, deliverOrder } = require('../controllers/order.controller');
 
 // middlewares
 const { roleAuth } = require('../middlewares/roleAuth');
 
 // routes
-router.post('/', roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), createOrder)
+router.post('/', createOrder)
 router.put('/approve/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), approveOrder)
 router.put('/deliver/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operator", "DeliveryBoy"), deliverOrder)
 

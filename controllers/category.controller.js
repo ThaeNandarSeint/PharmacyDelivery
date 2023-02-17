@@ -1,30 +1,21 @@
-const cloudinary = require('cloudinary');
 const { createCustomId } = require('../services/createCustomId');
 
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.CLOUD_API_KEY,
-  api_secret: process.env.CLOUD_API_SECRET
-})
-
 // models
-const Categories = require("../models/categoryModel");
+const Categories = require("../models/category.model");
 const { uploadImages } = require('../services/uploadImages');
 const { deleteImages } = require('../services/deleteImages');
 
 // create
 const createCategory = async (req, res, next) => {
   try {
-    const { title } = req.body;
+    const { categoryTitle } = req.body;
 
-    // empty validation
-    if (!title) {
-      return res.status(400).json({ status: false, msg: "Some required information are missing!" });
-    }
     // unique validation
     const category = await Categories.findOne({ title });
     if (category) {
-      return res.status(400).json({ status: 400, msg: "This category already exist!" });
+      const error = new Error("This category already exist!");
+      error.status = 400;
+      return next(error)
     }
 
     // create custom id
@@ -40,7 +31,7 @@ const createCategory = async (req, res, next) => {
 
         const savedCategory = await newCategory.save();
 
-        return res.status(201).json({ status: 201, categoryId: savedCategory._id, msg: "New Category has been successfully uploaded!" });
+        return res.status(201).json({ statusCode: 201, payload: { category: savedCategory }, message: "New Category has been successfully uploaded!" })
 
       }
     }
@@ -72,14 +63,13 @@ const createCategory = async (req, res, next) => {
 const updateCategory = async (req, res, next) => {
   try {
     const { title } = req.body;
-    // empty validation
-    if (!title) {
-      return res.status(400).json({ status: 400, msg: "Some required information are missing!" });
-    }
+
     // validation
     const category = await Categories.findById(req.params.id);
     if (!category) {
-      return res.status(404).json({ status: 404, msg: "Category Not Found by this id" });
+      const error = new Error("Category Not Found by this id!");
+      error.status = 404;
+      return next(error)
     }
 
     let deletePromises = []
@@ -100,7 +90,8 @@ const updateCategory = async (req, res, next) => {
 
     const updateCategory = async (categoryId, payload) => {
       await Categories.findByIdAndUpdate(categoryId, payload);
-      return res.status(200).json({ status: 200, msg: "Your Category has been successfully updated!" });
+
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your Category has been successfully updated!" })
     }
 
     // include photo in request body
@@ -138,15 +129,17 @@ const deleteCategory = async (req, res, next) => {
     // not include photo
     if (picPublicIds[0] === "") {
       await Categories.findByIdAndDelete(req.params.id);
-      return res.status(200).json({ status: 200, msg: "Your category has been successfully deleted!" });
+
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your category has been successfully deleted!" })
     }
 
     // include photo
     const deletePromises = deleteImages(picPublicIds)
     Promise.all(deletePromises).then(async () => {
 
-      await Categories.findByIdAndDelete(categoryId);
-      return res.status(200).json({ status: 200, msg: "Your category has been successfully deleted!" });
+      await Categories.findByIdAndDelete(req.params.id);
+
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your category has been successfully deleted!" })
 
     }).catch((err) => {
 
@@ -164,7 +157,7 @@ const getByCategoryId = async (req, res, next) => {
 
     const category = await Categories.findById(req.params.id);
 
-    return res.status(200).json({ status: 200, category });
+    return res.status(200).json({ statusCode: 200, payload: { category }, message: "" })
 
   } catch (err) {
     next(err);
@@ -174,25 +167,25 @@ const getByCategoryId = async (req, res, next) => {
 // get all categories for every users
 const getAllCategories = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, title = "" } = req.query;
+    const { page = 1, limit = 10, categoryTitle = "" } = req.query;
 
     const matchStage = {
       $or: [
-        { title: { $regex: title } }
+        { title: { $regex: categoryTitle } }
       ],
     }
 
     const limitStage = limit * 1
     const skipStage = (page - 1) * limit
 
-    const categories = await Categories.aggregate([ 
-      { $match: matchStage },  
+    const categories = await Categories.aggregate([
+      { $match: matchStage },
       { $sort: { id: -1 } },
       { $skip: skipStage },
-      { $limit: limitStage }      
+      { $limit: limitStage }
     ])
 
-    return res.status(200).json({ status: 200, categories });
+    return res.status(200).json({ statusCode: 200, payload: { categories }, message: "" })
 
   } catch (err) {
     next(err);

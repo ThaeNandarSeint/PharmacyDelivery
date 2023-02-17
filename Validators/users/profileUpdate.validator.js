@@ -19,6 +19,4 @@ const profileUpdateValidator = async (req, res, next) => {
 	}
 };
 
-module.exports = {
-    profileUpdateValidator
-};
+module.exports = profileUpdateValidator

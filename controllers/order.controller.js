@@ -1,9 +1,8 @@
-const Users = require('../models/userModel')
-const Orders = require('../models/orderModel')
-const Medicines = require('../models/medicineModel')
-const Categories = require('../models/categoryModel')
-const DeliveryInfos = require('../models/deliveryInfoModel')
-const DeliveryBoys = require('../models/deliveryBoyModel')
+const Users = require('../models/user.model')
+const Orders = require('../models/order.model')
+const Medicines = require('../models/medicine.model')
+const DeliveryInfos = require('../models/deliveryInfo.model')
+const DeliveryPersons = require('../models/deliveryPerson.model')
 
 // services
 const sendMail = require('../services/sendMail')
@@ -16,10 +15,6 @@ const createOrder = async (req, res, next) => {
         const userId = req.user.id
 
         const { medicines, buildingNo, street, quarter, township, city, state } = req.body
-        // empty validation
-        if (!userId || !medicines || !buildingNo || !street || !quarter || !township || !city || !state) {
-            return res.status(400).json({ status: 400, msg: "Some required information are missing!" })
-        }
 
         const address = {
             buildingNo, street, quarter, township, city, state
@@ -34,10 +29,14 @@ const createOrder = async (req, res, next) => {
 
             const { stocks, name, orderCount, price } = await Medicines.findById(medicineId)
             if (!stocks) {
-                return res.status(410).json({ status: 410, msg: `This medicine ${name} is out of stocks!` })
+                const error = new Error(`This medicine ${name} is out of stocks!`);
+                error.status = 410;
+                return next(error)
             }
             if (quantity > stocks) {
-                return res.status(410).json({ status: 410, msg: `This medicine ${name} can be ordered less than ${stocks}!` })
+                const error = new Error(`This medicine ${name} can be ordered less than ${stocks}!`);
+                error.status = 410;
+                return next(error)
             }
             priceArray.push(quantity * price)
             quantityArray.push(quantity)
@@ -52,7 +51,7 @@ const createOrder = async (req, res, next) => {
         const add = (array) => {
             let total = 0
             for (let i = 0; i < array.length; i++) {
-                total = total + array[i];    
+                total = total + array[i];
             }
             return total
         }
@@ -77,7 +76,7 @@ const createOrder = async (req, res, next) => {
                 const html = orderConfirmHtml()
                 sendMail(email, html)
 
-                return res.status(201).json({ status: 201, orderId: savedOrder._id, msg: "New order has been successfully created!" })
+                return res.status(201).json({ statusCode: 201, payload: { order: savedOrder }, message: "New order has been successfully created!" })
             })
         }
 
@@ -95,40 +94,46 @@ const approveOrder = async (req, res, next) => {
         const { status, userId } = await Orders.findById(req.params.id)
 
         if (status === "deliver" || status === "complete" || status === "cancel") {
-            return res.status(400).json({ status: 400, msg: `Not allowed to confirm. This order has been already on ${status} stage!` })
+            const error = new Error(`Not allowed to confirm. This order has been already on ${status} stage!`);
+            error.status = 400;
+            return next(error)
         }
 
         const timeTaken = (7 * 24 * 60 * 60 * 1000) + (prepareTime * 1)  //default -> 1 week
         const deliveryTime = timeTaken / (24 * 60 * 60 * 1000)
 
         const matchStage = {
-            status: { 
+            status: {
                 $eq: "inactive"
             }
         }
 
-        const deliveryBoys = await DeliveryBoys.aggregate([{ $match: matchStage }, { $sample: { size: 1 } }])   
-        if(deliveryBoys){
-            return res.status(400).json({ status: 400, msg: `All delivery boys are busy!` })
+        const deliveryBoys = await DeliveryPersons.aggregate([{ $match: matchStage }, { $sample: { size: 1 } }])
+        if (!deliveryBoys) {
+            const error = new Error("All delivery boys are busy!");
+            error.status = 400;
+            return next(error)
         }
 
         const deliveryBoyId = deliveryBoys[0]._id
         const deliveryBoyStatus = deliveryBoys[0].status
 
         if (deliveryBoyStatus === "active") {
-            return res.status(400).json({ status: 400, msg: `This delivery boy has been already on ${deliveryBoyStatus} stage!` })
+            const error = new Error(`This delivery boy has been already on ${deliveryBoyStatus} stage!`);
+            error.status = 400;
+            return next(error)
         }
         // create custom id
         const id = await createCustomId(DeliveryInfos, "DI")
 
         const deliveryInfo = new DeliveryInfos({
-           id, deliveryTime, customerId: userId, deliveryFee, deliveryBoyId
+            id, deliveryTime, customerId: userId, deliveryFee, deliveryBoyId
         })
 
         await deliveryInfo.save()
 
         await Orders.findByIdAndUpdate(req.params.id, { status: "deliver" })
-        await DeliveryBoys.findByIdAndUpdate(deliveryBoyId, { status: "active" })
+        await DeliveryPersons.findByIdAndUpdate(deliveryBoyId, { status: "active" })
 
         const { email } = await Users.findById(userId)
 
@@ -136,7 +141,7 @@ const approveOrder = async (req, res, next) => {
 
         sendMail(email, html)
 
-        return res.status(200).json({ status: 200, msg: "This order has been on deliver stage!" })
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "This order has been on deliver stage!" })
 
     } catch (err) {
         next(err)
@@ -150,7 +155,9 @@ const deliverOrder = async (req, res, next) => {
         const { status, userId } = await Orders.findById(req.params.id)
 
         if (status === "pending" || status === "complete" || status === "cancel") {
-            return res.status(400).json({ status: 400, msg: `Not allowed to confirm. This order has been already on ${status} stage!` })
+            const error = new Error(`Not allowed to confirm. This order has been already on ${status} stage!`);
+            error.status = 400;
+            return next(error)
         }
 
         await Orders.findByIdAndUpdate(req.params.id, { status: "complete" })
@@ -161,7 +168,7 @@ const deliverOrder = async (req, res, next) => {
 
         sendMail(email, html)
 
-        return res.status(200).json({ status: 200, msg: "This order has been on complete stage!" })
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "This order has been on complete stage!" })
 
     } catch (err) {
         next(err)
@@ -174,7 +181,9 @@ const cancelOrder = async (req, res, next) => {
         const { status } = await Orders.findById(req.params.id)
 
         if (status === "confirm" || status === "deliver" || status === "complete" || status === "cancel") {
-            return res.status(400).json({ status: 400, msg: `Not allowed to cancel. This order has been already on ${status} stage!` })
+            const error = new Error(`Not allowed to cancel. This order has been already on ${status} stage!`);
+            error.status = 400;
+            return next(error)
         }
 
         const { medicines } = await Orders.findById(req.params.id)
@@ -193,7 +202,7 @@ const cancelOrder = async (req, res, next) => {
 
         await Orders.findByIdAndUpdate(req.params.id, { status: "cancel", medicines: [], cancelBy: userId })
 
-        return res.status(200).json({ status: 200, msg: "This order has been successfully cancelled!" })
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "This order has been successfully cancelled!" })
 
     } catch (err) {
         next(err)
@@ -206,7 +215,7 @@ const getByOrderId = async (req, res, next) => {
     try {
         const order = await Orders.findById(req.params.id)
 
-        return res.status(200).json({ status: 200, order })
+        return res.status(200).json({ statusCode: 200, payload: { order }, message: "" })
 
     } catch (err) {
         next(err);
@@ -216,7 +225,7 @@ const getByOrderId = async (req, res, next) => {
 const getAllOrders = async (req, res, next) => {
     try {
         // for one year
-        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", status = "complete", userName = "", medicineName = "", categoryTitle = "" } = req.query;
+        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", status = "pending", userName = "", medicineName = "", categoryTitle = "" } = req.query;
 
         const startDate = new Date(start)
         const endDate = new Date(end)
@@ -264,11 +273,11 @@ const getAllOrders = async (req, res, next) => {
             totalQuantity: { $first: "$totalQuantity" },
             totalPrice: { $first: "$totalPrice" },
             saleByCategory: {
-                $first: { 
+                $first: {
                     categoryTitle: { $second: "$categoryDetail.title" }
                 }
             }
-          }
+        }
 
         const limitStage = limit * 1
         const skipStage = (page - 1) * limit
@@ -291,32 +300,7 @@ const getAllOrders = async (req, res, next) => {
 
         const orders = await Orders.aggregate(pipelines)
 
-        return res.status(200).json({ status: 200, orders })
-
-        // const group = {
-        //     _id: "$_id",
-        //     orderId: { "$first": "$orderId" },
-        //     totalOrderCount: { $sum: "$medicines.orderCount" },
-        //     totalPrice: { $sum: "$medicineDetails.price" },
-
-        //     saleByCategory: {
-        //         "$first": {
-        //             categoryTitle: "$categoryDetails.title",
-        //             totalOrderCount: { $sum: "$medicines.orderCount" },
-        //             totalPrice: { $sum: "$medicineDetails.price" },
-        //             items: [
-        //                 {
-        //                     medicineName: "$medicineDetails.name",
-        //                     price: "$medicineDetails.price",
-        //                     orderCount: "$medicines.orderCount"
-        //                 }
-        //             ]
-        //         },
-        //         // "$second": {
-        //         //     
-        //         // }
-        //     }
-        // }
+        return res.status(200).json({ statusCode: 200, payload: { orders }, message: "" })
 
     } catch (err) {
         next(err)

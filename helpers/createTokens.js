@@ -11,7 +11,7 @@ const createActivationToken = (payload) => {
 
 const createAccessToken = (payload) => {
     return jwt.sign(payload, ACCESS_TOKEN_SECRET, {
-        expiresIn: '1h'
+        expiresIn: '24h'
     })
 }
 
