@@ -5,13 +5,14 @@ const { getAllCategories, createCategory, updateCategory, deleteCategory, getByC
 
 // middlewares
 const { roleAuth } = require('../middlewares/roleAuth');
+const { userAuth } = require("../middlewares/userAuth");
 
 //validation middlewares
 const { categoryValidator } = require("../validators/categories/category.validator");
 
-router.post("/", roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, createCategory);
-router.put("/:id", roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, updateCategory);
-router.delete("/:id", roleAuth("Superadmin", "Admin", "Supervisor"), deleteCategory);
+router.post("/", userAuth, roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, createCategory);
+router.put("/:id", userAuth, roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, updateCategory);
+router.delete("/:id", userAuth, roleAuth("Superadmin", "Admin", "Supervisor"), deleteCategory);
 
 //---------------------- can do all users ----------------------
 router.get("/", getAllCategories);

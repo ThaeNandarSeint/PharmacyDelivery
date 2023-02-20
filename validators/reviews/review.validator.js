@@ -22,7 +22,7 @@ const reviewValidator = async (req, res, next) => {
 
   } else {
 
-    req.folderName = `PharmacyDelivery/Reviews/${name}`
+    req.folderName = `PharmacyDelivery/Reviews/${name.replace(/[^a-zA-Z0-9 ]/g, '')}`
     next();
 
   }

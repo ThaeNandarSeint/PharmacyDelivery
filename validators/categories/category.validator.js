@@ -1,7 +1,7 @@
 const joi = require("joi");
 
 const validation = joi.object({
-  title: joi.string().min(3).max(25).trim(true).required(),
+  title: joi.string().trim(true).required(),
 });
 
 const categoryValidator = async (req, res, next) => {
@@ -18,7 +18,7 @@ const categoryValidator = async (req, res, next) => {
 
   } else {
 
-    req.folderName = `PharmacyDelivery/Categories/${req.body.title}`
+    req.folderName = `PharmacyDelivery/Categories/${req.body.title.replace(/[^a-zA-Z0-9 ]/g, '')}`
     next();
 
   }

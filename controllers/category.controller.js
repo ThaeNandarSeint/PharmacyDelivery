@@ -8,7 +8,7 @@ const { deleteImages } = require('../services/deleteImages');
 // create
 const createCategory = async (req, res, next) => {
   try {
-    const { categoryTitle } = req.body;
+    const { title } = req.body;
 
     // unique validation
     const category = await Categories.findOne({ title });
@@ -49,7 +49,6 @@ const createCategory = async (req, res, next) => {
           pictureUrls.push(secure_url);
           picPublicIds.push(public_id);
         }
-
         await storeNewCategory(pictureUrls, picPublicIds)
 
       }).catch((err) => next(err))
@@ -180,7 +179,7 @@ const getAllCategories = async (req, res, next) => {
 
     const categories = await Categories.aggregate([
       { $match: matchStage },
-      { $sort: { id: -1 } },
+      { $sort: { updatedAt: -1 } },
       { $skip: skipStage },
       { $limit: limitStage }
     ])

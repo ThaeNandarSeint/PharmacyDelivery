@@ -26,7 +26,9 @@
     "morgan": "^1.10.0",
     "node-fetch": "^2.6.8",
     "nodemailer": "^6.8.0",
-    "socket.io": "^4.5.4"
+    "socket.io": "^4.5.4",
+    "twilio": "^4.7.2",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"

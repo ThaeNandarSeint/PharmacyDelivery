@@ -22,7 +22,7 @@ const medicineValidator = async (req, res, next) => {
 		return next(err)
 
 	} else {
-		req.folderName = `PharmacyDelivery/Medicines/${req.body.name}`
+		req.folderName = `PharmacyDelivery/Medicines/${req.body.name.replace(/[^a-zA-Z0-9 ]/g, '')}`
 		next();
 	}
 };

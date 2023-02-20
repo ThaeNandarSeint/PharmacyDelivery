@@ -40,17 +40,21 @@ const messageRoute = require("./routes/message.route");
 const deliveryPersonRoute = require("./routes/deliveryPerson.route");
 const reviewRoute = require("./routes/review.route");
 
+const videoCallRoute = require("./routes/videoCall.route");
+
 // middlewares
 const { userAuth } = require("./middlewares/userAuth");
 
 app.use("/api/auth", authRoute);
 app.use("/api/users", userAuth, userRoute);
-app.use("/api/categories", userAuth, categoryRoute);
-app.use("/api/medicines", userAuth, medicineRoute);
+app.use("/api/categories", categoryRoute);
+app.use("/api/medicines", medicineRoute);
 app.use("/api/orders", userAuth, orderRoute);
 app.use("/api/messages", userAuth, messageRoute);
 app.use("/api/deliveryPersons", userAuth, deliveryPersonRoute);
 app.use("/api/reviews", userAuth, reviewRoute);
+
+app.use("/api/videoCall", userAuth, videoCallRoute);
 
 // socket setup
 const socket = require("socket.io");
@@ -96,6 +100,5 @@ app.use((req, res, next) => {
   next(error);
 });
 app.use((error, req, res, next) => {
-  res.status(error.status || 500);
-  return res.status(error.status).json({ statusCode: error.status, payload: {  }, message: error.message })
+  return res.status(error.status || 500).json({ statusCode: error.status || 500, payload: {  }, message: error.message })
 });
