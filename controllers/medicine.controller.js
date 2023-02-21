@@ -12,7 +12,7 @@ const getByMedicineId = async (req, res, next) => {
 
     const medicine = await Medicines.findById(req.params.id);
 
-    return res.status(200).json({ statusCode: 200, payload: { medicine }, message: "" })
+    return res.status(200).json({ statusCode: 200, payload: medicine, message: "" })
 
   } catch (err) {
     next(err);
@@ -108,7 +108,7 @@ const getAllMedicines = async (req, res, next) => {
       sortStage = { price: -1 }
     } else
     {
-      sortStage = { id: -1 }
+      sortStage = { updatedAt: -1 }
     }
 
     // ----------------------
@@ -129,7 +129,7 @@ const getAllMedicines = async (req, res, next) => {
 
     const documentCount = await Medicines.countDocuments()
 
-    return res.status(200).json({ statusCode: 200, payload: { medicines, documentCount }, message: "" })
+    return res.status(200).json({ statusCode: 200, payload: medicines, total: documentCount, message: "" })
 
   } catch (err) {
     next(err);
@@ -176,7 +176,7 @@ const getAllFavouriteMedicines = async (req, res, next) => {
 
     }
 
-    return res.status(200).json({ statusCode: 200, payload: { medicines }, message: "" })
+    return res.status(200).json({ statusCode: 200, payload: medicines, message: "" })
 
   } catch (err) {
     next(err)

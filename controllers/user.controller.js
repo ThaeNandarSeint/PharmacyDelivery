@@ -107,7 +107,7 @@ const getByUserId = async (req, res, next) => {
 
         const user = await Users.findById(req.params.id).select('-password')
 
-        return res.status(200).json({ statusCode: 200, payload: { user }, message: "" })
+        return res.status(200).json({ statusCode: 200, payload: user, message: "" })
 
     } catch (err) {
         next(err);
@@ -151,7 +151,7 @@ const getAllUsers = async (req, res, next) => {
 
         const documentCount = await Users.countDocuments()
 
-        return res.status(200).json({ statusCode: 200, payload: { users, documentCount }, message: "" })
+        return res.status(200).json({ statusCode: 200, payload: users, documentCount, message: "" })
 
     } catch (err) {
         next(err);
@@ -280,12 +280,14 @@ const getAllDeliveryPersons = async (req, res, next) => {
             { $lookup: userLookup },
             { $match: matchStage },
             { $project: projectStage },
-            { $sort: { id: -1 } },
+            { $sort: { updatedAt: -1 } },
             { $skip: skipStage },
             { $limit: limitStage }
         ])
 
-        return res.status(200).json({ statusCode: 200, payload: { deliveryPersons }, message: "" })
+        const documentCount = await DeliveryPersons.countDocuments()
+
+        return res.status(200).json({ statusCode: 200, payload: deliveryPersons, total: documentCount, message: "" })
 
     } catch (err) {
         next(err)

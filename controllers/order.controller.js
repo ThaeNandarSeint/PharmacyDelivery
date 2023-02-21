@@ -215,7 +215,7 @@ const getByOrderId = async (req, res, next) => {
     try {
         const order = await Orders.findById(req.params.id)
 
-        return res.status(200).json({ statusCode: 200, payload: { order }, message: "" })
+        return res.status(200).json({ statusCode: 200, payload: order, message: "" })
 
     } catch (err) {
         next(err);
@@ -293,7 +293,7 @@ const getAllOrders = async (req, res, next) => {
             { $match: matchStage },
             // { $group: groupStage },
 
-            { $sort: { id: -1 } },
+            { $sort: { updatedAt: -1 } },
             { $skip: skipStage },
             { $limit: limitStage }
         ]
@@ -302,7 +302,7 @@ const getAllOrders = async (req, res, next) => {
 
         const documentCount = await Orders.countDocuments()
 
-        return res.status(200).json({ statusCode: 200, payload: { orders, documentCount }, message: "" })
+        return res.status(200).json({ statusCode: 200, payload: orders, total: documentCount, message: "" })
 
     } catch (err) {
         next(err)

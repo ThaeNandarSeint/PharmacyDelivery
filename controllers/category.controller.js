@@ -156,7 +156,7 @@ const getByCategoryId = async (req, res, next) => {
 
     const category = await Categories.findById(req.params.id);
 
-    return res.status(200).json({ statusCode: 200, payload: { category }, message: "" })
+    return res.status(200).json({ statusCode: 200, payload: category, message: "" })
 
   } catch (err) {
     next(err);
@@ -186,7 +186,7 @@ const getAllCategories = async (req, res, next) => {
 
     const documentCount = await Categories.countDocuments()
 
-    return res.status(200).json({ statusCode: 200, payload: { categories, documentCount }, message: "" })
+    return res.status(200).json({ statusCode: 200, payload: categories, total: documentCount, message: "" })
 
   } catch (err) {
     next(err);

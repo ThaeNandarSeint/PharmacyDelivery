@@ -178,14 +178,14 @@ const getAllReviews = async (req, res, next) => {
       { $match: dateFilter },
       { $lookup: medicineLookup },
       { $match: matchStage },
-      { $sort: { id: -1 } },
+      { $sort: { updatedAt: -1 } },
       { $skip: skipStage },
       { $limit: limitStage }
     ])
 
     const documentCount = await Reviews.countDocuments()
 
-    return res.status(200).json({ statusCode: 200, payload: { reviews, documentCount }, message: "" })
+    return res.status(200).json({ statusCode: 200, payload: reviews, total: documentCount, message: "" })
 
   } catch (err) {
     next(err);
@@ -197,7 +197,7 @@ const getByReviewId = async (req, res, next) => {
 
     const review = await Reviews.findById(req.params.id);
 
-    return res.status(200).json({ statusCode: 200, payload: { review }, message: "" })
+    return res.status(200).json({ statusCode: 200, payload: review, message: "" })
 
   } catch (err) {
     next(err);
