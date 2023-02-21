@@ -184,7 +184,9 @@ const getAllCategories = async (req, res, next) => {
       { $limit: limitStage }
     ])
 
-    return res.status(200).json({ statusCode: 200, payload: { categories }, message: "" })
+    const documentCount = await Categories.countDocuments()
+
+    return res.status(200).json({ statusCode: 200, payload: { categories, documentCount }, message: "" })
 
   } catch (err) {
     next(err);

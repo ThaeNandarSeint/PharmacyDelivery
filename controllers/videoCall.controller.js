@@ -6,7 +6,7 @@ const createVideoCall = async (req, res, next) => {
     try{
         const { name } = await Users.findById(req.user.id)
 
-        await findOrCreateRoom(name)
+        findOrCreateRoom(name)
 
         const token = getAccessToken(name)
 

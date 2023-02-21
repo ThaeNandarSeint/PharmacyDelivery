@@ -183,7 +183,9 @@ const getAllReviews = async (req, res, next) => {
       { $limit: limitStage }
     ])
 
-    return res.status(200).json({ statusCode: 200, payload: { reviews }, message: "" })
+    const documentCount = await Reviews.countDocuments()
+
+    return res.status(200).json({ statusCode: 200, payload: { reviews, documentCount }, message: "" })
 
   } catch (err) {
     next(err);

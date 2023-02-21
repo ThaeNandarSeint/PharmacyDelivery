@@ -149,7 +149,9 @@ const getAllUsers = async (req, res, next) => {
             { $limit: limitStage }
         ])
 
-        return res.status(200).json({ statusCode: 200, payload: { users }, message: "" })
+        const documentCount = await Users.countDocuments()
+
+        return res.status(200).json({ statusCode: 200, payload: { users, documentCount }, message: "" })
 
     } catch (err) {
         next(err);

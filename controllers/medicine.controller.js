@@ -127,7 +127,9 @@ const getAllMedicines = async (req, res, next) => {
 
     const medicines = await Medicines.aggregate(pipelines)
 
-    return res.status(200).json({ statusCode: 200, payload: { medicines }, message: "" })
+    const documentCount = await Medicines.countDocuments()
+
+    return res.status(200).json({ statusCode: 200, payload: { medicines, documentCount }, message: "" })
 
   } catch (err) {
     next(err);

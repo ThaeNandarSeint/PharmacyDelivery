@@ -300,7 +300,9 @@ const getAllOrders = async (req, res, next) => {
 
         const orders = await Orders.aggregate(pipelines)
 
-        return res.status(200).json({ statusCode: 200, payload: { orders }, message: "" })
+        const documentCount = await Orders.countDocuments()
+
+        return res.status(200).json({ statusCode: 200, payload: { orders, documentCount }, message: "" })
 
     } catch (err) {
         next(err)
