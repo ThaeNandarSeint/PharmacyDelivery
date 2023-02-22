@@ -225,7 +225,7 @@ const getByOrderId = async (req, res, next) => {
 const getAllOrders = async (req, res, next) => {
     try {
         // for one year
-        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", status = "pending", userName = "", medicineName = "", categoryTitle = "" } = req.query;
+        const { page = 1, limit = 12, start = "2023-01-01", end = "2024-01-01", status = "pending", userName = "", medicineName = "", categoryTitle = "" } = req.query;
 
         const startDate = new Date(start)
         const endDate = new Date(end)

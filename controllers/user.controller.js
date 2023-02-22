@@ -117,7 +117,7 @@ const getByUserId = async (req, res, next) => {
 // get all users
 const getAllUsers = async (req, res, next) => {
     try {
-        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", userName = "" } = req.query;
+        const { page = 1, limit = 12, start = "2023-01-01", end = "2024-01-01", userName = "" } = req.query;
 
         const startDate = new Date(start)
         const endDate = new Date(end)
@@ -246,7 +246,7 @@ const createDeliveryPerson = async (req, res, next) => {
 const getAllDeliveryPersons = async (req, res, next) => {
     try {
 
-        const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", name = "" } = req.query;
+        const { page = 1, limit = 12, start = "2023-01-01", end = "2024-01-01", name = "" } = req.query;
 
         const startDate = new Date(start)
         const endDate = new Date(end)
