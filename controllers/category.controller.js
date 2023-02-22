@@ -166,7 +166,7 @@ const getByCategoryId = async (req, res, next) => {
 // get all categories for every users
 const getAllCategories = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, categoryTitle = "" } = req.query;
+    const { page = 1, limit = 12, categoryTitle = "" } = req.query;
 
     const matchStage = {
       $or: [

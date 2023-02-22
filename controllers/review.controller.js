@@ -145,7 +145,7 @@ const deleteReview = async (req, res, next) => {
 const getAllReviews = async (req, res, next) => {
   try {
     // for one year
-    const { page = 1, limit = 10, start = "2023-01-01", end = "2024-01-01", medicineName = "", companyName = "" } = req.query;
+    const { page = 1, limit = 12, start = "2023-01-01", end = "2024-01-01", medicineName = "", companyName = "" } = req.query;
 
     const startDate = new Date(start)
     const endDate = new Date(end)
