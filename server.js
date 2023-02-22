@@ -83,6 +83,7 @@ io.on("connection", (socket) => {
     activeUsers = activeUsers.filter((user) => user.socketId !== socket.id);
     io.emit("get-users", activeUsers);
   });
+  // send message
   socket.on("send-msg", (data) => {
     const receiverId = data.to;
     const user = activeUsers.find((user) => user.userId === receiverId);
@@ -90,6 +91,14 @@ io.on("connection", (socket) => {
       socket.to(user.socketId).emit("msg-receive", data.message);
     }
   });
+  // phone call
+  socket.on('call-phone', (data) => {
+    const receiverId = data.to;
+    const user = activeUsers.find((user) => user.userId === receiverId);
+    if (user) {
+      socket.to(user.socketId).emit("call-receive", data.message);
+    }
+  })
 });
 
 // handle errors

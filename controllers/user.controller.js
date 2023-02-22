@@ -17,6 +17,18 @@ const { uploadImages } = require('../services/uploadImages');
 const { deleteImages } = require('../services/deleteImages');
 const { createCustomId } = require('../services/createCustomId');
 
+const getMyInfo = async (req, res, next) => {
+    try{
+
+        const user = await Users.findById(req.user.id).select('-password')
+
+        return res.status(200).json({ statusCode: 200, payload: user, message: "" })
+
+    }catch(err){
+        next(err)
+    }
+}
+
 const updatePassword = async (req, res, next) => {
     try {
         const { currentPassword, newPassword } = req.body;
@@ -313,6 +325,7 @@ const grantRole = async (req, res, next) => {
 module.exports = {
     updatePassword,
     updateMe,
+    getMyInfo,
 
     createDeliveryPerson,
     getAllDeliveryPersons,
