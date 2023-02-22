@@ -66,7 +66,7 @@ const register = async (req, res, next) => {
                 id,
                 name,
                 email,
-                password,
+                password: passwordHash,
                 pictureUrls: ["https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"],
                 picPublicIds: ["PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"]
             })
