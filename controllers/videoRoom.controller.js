@@ -15,6 +15,8 @@ const createRoom = async (req, res, next) => {
     const { roomName } = req.body
     const userId = req.user.id
 
+    console.log(userId);
+
     try {
         const rooms = await twilioClient.video.v1.rooms.list({ uniqueName: roomName });
         // const existingRoom = await twilioClient.video.v1.rooms(roomName).fetch();
@@ -33,7 +35,8 @@ const createRoom = async (req, res, next) => {
         return res.status(200).json({ statusCode: 200, payload: { room, token }, message: "" })
 
     } catch (err) {
-        next(err)        
+        console.log(err);   
+        next(err)            
     }
 }
 
