@@ -40,7 +40,6 @@ const messageRoute = require("./routes/message.route");
 const deliveryPersonRoute = require("./routes/deliveryPerson.route");
 const reviewRoute = require("./routes/review.route");
 
-const videoCallRoute = require("./routes/videoCall.route");
 const videoRoomRoute = require("./routes/videoRoom.route");
 
 // middlewares
@@ -55,7 +54,6 @@ app.use("/api/messages", userAuth, messageRoute);
 app.use("/api/deliveryPersons", userAuth, deliveryPersonRoute);
 app.use("/api/reviews", userAuth, reviewRoute);
 
-app.use("/api/videoCall", videoCallRoute);
 app.use("/api/rooms", userAuth, videoRoomRoute);
 
 // socket setup

@@ -15,8 +15,6 @@ const createRoom = async (req, res, next) => {
     const { roomName } = req.body
     const userId = req.user.id
 
-    console.log(userId);
-
     try {
         const rooms = await twilioClient.video.v1.rooms.list({ uniqueName: roomName });
         // const existingRoom = await twilioClient.video.v1.rooms(roomName).fetch();
@@ -35,7 +33,11 @@ const createRoom = async (req, res, next) => {
         return res.status(200).json({ statusCode: 200, payload: { room, token }, message: "" })
 
     } catch (err) {
-        console.log(err);   
+        if(err.message === "identity is required to be specified in options"){
+            const error = new Error("This user already exists in room");
+            error.status = 400;
+            return next(error)
+        }        
         next(err)            
     }
 }
