@@ -11,7 +11,7 @@ const twilioClient = require("twilio")(
 const findOrCreateRoom = async (roomName) => {
     try {
 
-        await twilioClient.video.v1.rooms(roomName).fetch();
+        await twilioClient.video.v1.rooms(roomName).fetch()
 
     } catch (error) {
 
@@ -27,22 +27,22 @@ const findOrCreateRoom = async (roomName) => {
     }
 }
 
-const getAccessToken = (roomName) => {
+const getAccessToken = (roomName, userId) => {
     const token = new AccessToken(
         process.env.TWILIO_ACCOUNT_SID,
         process.env.TWILIO_API_KEY_SID,
         process.env.TWILIO_API_KEY_SECRET,
-        // generate a random unique identity for this participant
-        { identity: uuidv4() }
+        
+        { identity: userId }
     );
-    // create a video grant for this specific room
+    
     const videoGrant = new VideoGrant({
         room: roomName,
     });
 
-    // add the video grant
+    
     token.addGrant(videoGrant);
-    // serialize the token and return it
+
     return token.toJwt();
 };
 

@@ -41,6 +41,7 @@ const deliveryPersonRoute = require("./routes/deliveryPerson.route");
 const reviewRoute = require("./routes/review.route");
 
 const videoCallRoute = require("./routes/videoCall.route");
+const videoRoomRoute = require("./routes/videoRoom.route");
 
 // middlewares
 const { userAuth } = require("./middlewares/userAuth");
@@ -54,10 +55,12 @@ app.use("/api/messages", userAuth, messageRoute);
 app.use("/api/deliveryPersons", userAuth, deliveryPersonRoute);
 app.use("/api/reviews", userAuth, reviewRoute);
 
-app.use("/api/videoCall", userAuth, videoCallRoute);
+app.use("/api/videoCall", videoCallRoute);
+app.use("/api/rooms", userAuth, videoRoomRoute);
 
 // socket setup
 const socket = require("socket.io");
+const { getAccessToken } = require("./services/videoCall.service");
 const CLIENT_URL = process.env.CLIENT_URL;
 const io = socket(server, {
   cors: {
@@ -66,39 +69,19 @@ const io = socket(server, {
   },
 });
 
-let activeUsers = [];
 io.on("connection", (socket) => {
-  // add new user
-  socket.on("new-user-add", (newUserId) => {
-    // if user is not added
-    if (!activeUsers.some((user) => user.userId === newUserId)) {
-      activeUsers.push({
-        userId: newUserId,
-        socketId: socket.id,
-      });
-    }
-    io.emit("get-users", activeUsers);
-  });
+
   socket.on("disconnect", () => {
-    activeUsers = activeUsers.filter((user) => user.socketId !== socket.id);
-    io.emit("get-users", activeUsers);
+    socket.emit('disconnected');
   });
-  // send message
-  socket.on("send-msg", (data) => {
-    const receiverId = data.to;
-    const user = activeUsers.find((user) => user.userId === receiverId);
-    if (user) {
-      socket.to(user.socketId).emit("msg-receive", data.message);
-    }
+
+  // click call btn
+  socket.on("call-phone", (data) => {
+    const calleeId = data.to;
+    const token = getAccessToken(data.roomName, calleeId)
+    socket.to(socket.id).emit("calling", { roomName: data.roomName, token });
   });
-  // phone call
-  socket.on('call-phone', (data) => {
-    const receiverId = data.to;
-    const user = activeUsers.find((user) => user.userId === receiverId);
-    if (user) {
-      socket.to(user.socketId).emit("call-receive", data.message);
-    }
-  })
+
 });
 
 // handle errors
