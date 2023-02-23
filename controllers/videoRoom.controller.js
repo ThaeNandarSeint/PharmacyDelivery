@@ -11,34 +11,34 @@ const twilioClient = require("twilio")(
 );
 
 const createRoom = async (req, res, next) => {
-
-    const { roomName } = req.body
-    const userId = req.user.id
-
     try {
+        const { roomName } = req.body
+        const userId = req.user.id
+
         const rooms = await twilioClient.video.v1.rooms.list({ uniqueName: roomName });
-        // const existingRoom = await twilioClient.video.v1.rooms(roomName).fetch();
-        if(rooms.length){
-            const token =  getAccessToken(roomName)
+
+        if (rooms.length) {
+            const token = getAccessToken(roomName, userId)
 
             return res.status(200).json({ statusCode: 200, payload: { existingRoom: rooms[0], token }, message: "" })
         }
+
         const room = await twilioClient.video.v1.rooms.create({
             uniqueName: roomName,
             type: 'go'
         });
 
-        const token =  getAccessToken(roomName, userId)
+        const token = getAccessToken(roomName, userId)
 
         return res.status(200).json({ statusCode: 200, payload: { room, token }, message: "" })
 
     } catch (err) {
-        if(err.message === "identity is required to be specified in options"){
+        if (err.message === "identity is required to be specified in options") {
             const error = new Error("This user already exists in room");
             error.status = 400;
             return next(error)
-        }        
-        next(err)            
+        }
+        next(err)
     }
 }
 
@@ -82,24 +82,24 @@ const getByRoomSid = async (req, res, next) => {
 }
 
 const closeRoom = async (req, res, next) => {
-    
-    const { sid } = req.params
-  
-    try {
-      
-      const room = await twilioClient.video.v1.rooms(sid).update({status: 'completed'})
-  
-      const closedRoom = {
-        sid: room.sid,
-        name: room.uniqueName,
-      }
 
-      return res.status(200).json({ statusCode: 200, payload: { closedRoom }, message: "" })
-  
+    const { sid } = req.params
+
+    try {
+
+        const room = await twilioClient.video.v1.rooms(sid).update({ status: 'completed' })
+
+        const closedRoom = {
+            sid: room.sid,
+            name: room.uniqueName,
+        }
+
+        return res.status(200).json({ statusCode: 200, payload: { closedRoom }, message: "" })
+
     } catch (error) {
         next(err)
     }
-  }
+}
 
 
 module.exports = {
