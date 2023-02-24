@@ -64,6 +64,7 @@ const Users = require('./models/user.model')
 const CLIENT_URL = process.env.CLIENT_URL;
 
 const io = socket(server, {
+  allowEIO3: true,
   cors: {
     origin: "*",
     credentials: true,
