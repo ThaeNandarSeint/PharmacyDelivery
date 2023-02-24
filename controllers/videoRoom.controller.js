@@ -20,8 +20,6 @@ const createRoom = async (req, res, next) => {
 
         const token = getAccessToken(roomName, userId)
 
-        console.log(room);
-
         return res.status(200).json({ statusCode: 200, payload: { roomName: room.uniqueName, roomSid: room.sid, token }, message: "" })
 
     } catch (err) {

@@ -106,14 +106,18 @@ io.on("connection", (socket) => {
 
   socket.join(user._id.toString());
 
+  socket.emit("connected", { message: "connected" })
+
   socket.on("disconnect", () => {
     socket.emit('disconnected');
   });
 
   // click call btn
   socket.on("start-call", async ({ callerId, calleeId, roomName }) => {    
-    const token = getAccessToken(roomName, calleeId)
-    socket.to(calleeId).emit("calling", { roomName, token, caller: user })
+    if(callerId !== calleeId){
+      const token = getAccessToken(roomName, calleeId)
+      socket.to(calleeId).emit("calling", { roomName, token, caller: user })
+    }
   });
 
   // click accept btn
