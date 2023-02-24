@@ -1,7 +1,6 @@
 require("dotenv").config();
 require("./db/conn");
 
-const process = require('process');
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -27,7 +26,7 @@ const server = app.listen(PORT, () => {
 });
 
 app.get('/', (req, res) => {
-  return res.status(200).json({ statusCode: 200, payload: {  }, message: 'Server is running!' })
+  return res.status(200).json({ statusCode: 200, payload: {}, message: 'Server is running!' })
 })
 
 // routes
@@ -58,27 +57,74 @@ app.use("/api/rooms", userAuth, videoRoomRoute);
 
 // socket setup
 const socket = require("socket.io");
+const jwt = require('jsonwebtoken')
 const { getAccessToken } = require("./services/videoCall.service");
+const Users = require('./models/user.model')
+
 const CLIENT_URL = process.env.CLIENT_URL;
+
 const io = socket(server, {
   cors: {
-    origin: `${CLIENT_URL}`,
+    origin: "*",
     credentials: true,
   },
 });
 
+app.set("socketIO", io)
+
+io.use((socket, next) => {
+  const accessToken = socket.handshake.auth.token || socket.handshake.headers.token;
+  if (!accessToken) {
+    const error = new Error("Token expires or Token was not found! Please Login now!");
+    error.status = 401;
+    return next(error)
+  }
+
+  jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, async (err, decoded) => {
+    if (err) {
+      const error = new Error("Token expires or Incorrect token!");
+      error.status = 401;
+      return next(error)
+    }
+
+    const user = await Users.findById(decoded.id)
+
+    if(!user){
+      const error = new Error("Token expires or Incorrect token!");
+      error.status = 401;
+      return next(error)
+    }
+
+    socket.user = user;
+
+    next();
+  });
+})
+
 io.on("connection", (socket) => {
+  const user = socket.user
+
+  socket.join(user._id.toString());
 
   socket.on("disconnect", () => {
     socket.emit('disconnected');
   });
 
   // click call btn
-  socket.on("call-phone", (data) => {
-    const calleeId = data.to;
-    const token = getAccessToken(data.roomName, calleeId)
-    socket.to(socket.id).emit("calling", { roomName: data.roomName, token });
+  socket.on("start-call", async ({ callerId, calleeId, roomName }) => {    
+    const token = getAccessToken(roomName, calleeId)
+    socket.to(calleeId).emit("calling", { roomName, token, caller: user })
   });
+
+  // click accept btn
+  socket.on("accept-call", ({ callerId, calleeId, roomName }) => {
+    // socket.to(calleeId).emit("accept-call", { callerId, calleeId, roomName })
+  })
+
+  // click decline btn
+  socket.on("decline-call", ({ callerId, calleeId, roomName }) => {
+    // socket.to(calleeId).emit("decline-call", { callerId, calleeId, roomName })
+  })
 
 });
 
@@ -90,5 +136,5 @@ app.use((req, res, next) => {
   next(error);
 });
 app.use((error, req, res, next) => {
-  return res.status(error.status || 500).json({ statusCode: error.status || 500, payload: {  }, message: error.message })
+  return res.status(error.status || 500).json({ statusCode: error.status || 500, payload: {}, message: error.message })
 });

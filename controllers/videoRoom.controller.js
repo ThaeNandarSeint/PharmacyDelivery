@@ -1,6 +1,4 @@
-// const AccessToken = require("twilio").jwt.AccessToken;
-// const VideoGrant = AccessToken.VideoGrant;
-// const { v4: uuidv4 } = require("uuid");
+const { v4: uuidv4 } = require("uuid");
 
 const { getAccessToken } = require("../services/videoCall.service");
 
@@ -12,16 +10,8 @@ const twilioClient = require("twilio")(
 
 const createRoom = async (req, res, next) => {
     try {
-        const { roomName } = req.body
+        const roomName = uuidv4()
         const userId = req.user.id
-
-        const rooms = await twilioClient.video.v1.rooms.list({ uniqueName: roomName });
-
-        if (rooms.length) {
-            const token = getAccessToken(roomName, userId)
-
-            return res.status(200).json({ statusCode: 200, payload: { existingRoom: rooms[0], token }, message: "" })
-        }
 
         const room = await twilioClient.video.v1.rooms.create({
             uniqueName: roomName,
@@ -30,7 +20,9 @@ const createRoom = async (req, res, next) => {
 
         const token = getAccessToken(roomName, userId)
 
-        return res.status(200).json({ statusCode: 200, payload: { room, token }, message: "" })
+        console.log(room);
+
+        return res.status(200).json({ statusCode: 200, payload: { roomName: room.uniqueName, roomSid: room.sid, token }, message: "" })
 
     } catch (err) {
         if (err.message === "identity is required to be specified in options") {
