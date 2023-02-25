@@ -74,62 +74,72 @@ const io = socket(server, {
 app.set("socketIO", io)
 
 io.use((socket, next) => {
-  const accessToken = socket.handshake.auth.token || socket.handshake.headers.token;
-  if (!accessToken) {
-    const error = new Error("Token expires or Token was not found! Please Login now!");
-    error.status = 401;
-    return next(error)
+  try {
+
+    const accessToken = socket.handshake.auth.token || socket.handshake.headers.token;
+    if (!accessToken) {
+      const error = new Error("Token expires or Token was not found! Please Login now!");
+      error.status = 401;
+      return next(error)
+    }
+
+    jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, async (err, decoded) => {
+      if (err) {
+        const error = new Error("Token expires or Incorrect token!");
+        error.status = 401;
+        return next(error)
+      }
+
+      const user = await Users.findById(decoded.id)
+
+      if (!user) {
+        const error = new Error("Token expires or Incorrect token!");
+        error.status = 401;
+        return next(error)
+      }
+
+      socket.user = user;
+
+      next();
+    });
+
+  } catch (err) {
+    next(err)
   }
-
-  jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, async (err, decoded) => {
-    if (err) {
-      const error = new Error("Token expires or Incorrect token!");
-      error.status = 401;
-      return next(error)
-    }
-
-    const user = await Users.findById(decoded.id)
-
-    if(!user){
-      const error = new Error("Token expires or Incorrect token!");
-      error.status = 401;
-      return next(error)
-    }
-
-    socket.user = user;
-
-    next();
-  });
 })
 
 io.on("connection", (socket) => {
-  const user = socket.user
+  try{
+    const user = socket.user
 
-  socket.join(user._id.toString());
+    socket.join(user._id.toString());
 
-  socket.emit("connected", { message: "connected" })
+    socket.emit("connected", { message: "connected" })
 
-  socket.on("disconnect", () => {
-    socket.emit('disconnected');
-  });
+    socket.on("disconnect", () => {
+      socket.emit('disconnected', { message: "disconnected" });
+    });   
 
-  // click call btn
-  socket.on("start-call", async ({ callerId, calleeId, roomName }) => {    
-    if(callerId !== calleeId){
-      const token = getAccessToken(roomName, calleeId)
-      socket.to(calleeId).emit("calling", { roomName, token, caller: user })
-    }
-  });
+    // click call btn
+    socket.on("start-call", async ({ callerId, calleeId, roomName }) => {
+      if (callerId !== calleeId) {
+        const token = getAccessToken(roomName, calleeId)
+        socket.to(calleeId).emit("calling", { roomName, token, caller: user })
+      }
+    });
 
-  // click accept btn
-  socket.on("accept-call", ({ callerId, calleeId, roomName }) => {
-    // socket.to(calleeId).emit("accept-call", { callerId, calleeId, roomName })
-  })
+    // click accept btn
+    socket.on("accept-call", ({ callerId, calleeId, roomName }) => {
+      // socket.to(calleeId).emit("accept-call", { callerId, calleeId, roomName })
+    })
 
-  // click decline btn
-  socket.on("decline-call", ({ callerId, calleeId, roomName }) => {
-    // socket.to(calleeId).emit("decline-call", { callerId, calleeId, roomName })
-  })
+    // click decline btn
+    socket.on("decline-call", ({ callerId, calleeId, roomName }) => {
+      // socket.to(calleeId).emit("decline-call", { callerId, calleeId, roomName })
+    })
+  }catch(err){
+    io.emit('error', { message: 'error'});
+  }
 
 });
 
