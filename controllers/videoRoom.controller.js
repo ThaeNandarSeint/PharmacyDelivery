@@ -20,7 +20,8 @@ const createRoom = async (req, res, next) => {
 
         const token = getAccessToken(roomName, userId)
 
-        return res.status(200).json({ statusCode: 200, payload: { roomName: room.uniqueName, roomSid: room.sid, token }, message: "" })
+        return res.status(200).json({ statusCode: 200, payload: { room, roomSid: room.sid, token }, message: "" })
+        // return res.status(200).json({ statusCode: 200, payload: { roomName: room.uniqueName, roomSid: room.sid, token }, message: "" })
 
     } catch (err) {
         if (err.message === "identity is required to be specified in options") {
@@ -34,24 +35,27 @@ const createRoom = async (req, res, next) => {
 
 const getAllRooms = async (req, res, next) => {
     try {
-        const rooms = await twilioClient.video.v1.rooms.list({ status: 'in-progress', limit: 20 });
+        const rooms = await twilioClient.video.v1.rooms.list({ status: "in-progress" });
+        // const rooms = await twilioClient.video.v1.rooms.list({ sid: 'RM399be3d56e9458fdfe8c6d5241d22083' });
+        // const allRooms = await twilioClient.video.v1.rooms.list({ limit: 20 });
+        
 
-        if (!rooms.length) {
-            return res.status(200).json({ statusCode: 200, payload: { activeRooms: rooms }, message: "No active rooms found" })
-        }
+        // if (!rooms.length) {
+        //     return res.status(200).json({ statusCode: 200, payload: { activeRooms: rooms }, message: "No active rooms found" })
+        // }
 
-        let activeRooms = [];
+        // let activeRooms = [];
 
-        rooms.forEach((room) => {
-            const roomData = {
-                sid: room.sid,
-                name: room.uniqueName
-            }
+        // rooms.forEach((room) => {
+        //     const roomData = {
+        //         sid: room.sid,
+        //         name: room.uniqueName
+        //     }
 
-            activeRooms.push(roomData);
-        });
+        //     activeRooms.push(roomData);
+        // });
 
-        return res.status(200).json({ statusCode: 200, payload: { activeRooms }, message: "" })
+        return res.status(200).json({ statusCode: 200, payload: { rooms }, message: "" })
 
     } catch (err) {
         next(err)

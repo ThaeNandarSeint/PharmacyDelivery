@@ -58,7 +58,7 @@ app.use("/api/rooms", userAuth, videoRoomRoute);
 // socket setup
 const socket = require("socket.io");
 const jwt = require('jsonwebtoken')
-const { getAccessToken } = require("./services/videoCall.service");
+const { getAccessToken, createCallLog, closeRoom } = require("./services/videoCall.service");
 const Users = require('./models/user.model')
 
 const CLIENT_URL = process.env.CLIENT_URL;
@@ -109,7 +109,7 @@ io.use((socket, next) => {
 })
 
 io.on("connection", (socket) => {
-  try{
+  try {
     const user = socket.user
 
     socket.join(user._id.toString());
@@ -118,10 +118,10 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
       socket.emit('disconnected', { message: "disconnected" });
-    });   
+    });
 
     // click call btn
-    socket.on("start-call", async ({ callerId, calleeId, roomName }) => {
+    socket.on("startCall", async ({ callerId, calleeId, roomName }) => {
       if (callerId !== calleeId) {
         const token = getAccessToken(roomName, calleeId)
         socket.to(calleeId).emit("calling", { roomName, token, caller: user })
@@ -129,16 +129,29 @@ io.on("connection", (socket) => {
     });
 
     // click accept btn
-    socket.on("accept-call", ({ callerId, calleeId, roomName }) => {
-      // socket.to(calleeId).emit("accept-call", { callerId, calleeId, roomName })
+    socket.on("acceptCall", ({ callerId, calleeId, roomName }) => {
+      socket.to(callerId).emit("acceptCall", { callerId, calleeId, roomName })
+    })
+
+    socket.on("callEnded", async ({ callerId, calleeId, roomSid, roomName }) => {
+      const participantDeclineId = socket.user._id.toString()
+
+      const declinedParticipantId = participantDeclineId === callerId ? calleeId : callerId;
+
+      socket.to(declinedParticipantId).emit('callEnded', { roomSid, roomName })
+
+      await closeRoom({ sid: roomSid })
+
+      await createCallLog({ callerId, calleeId, roomName, roomSid, participantDeclineId })
+
     })
 
     // click decline btn
-    socket.on("decline-call", ({ callerId, calleeId, roomName }) => {
+    socket.on("declineCall", ({ callerId, calleeId, roomName }) => {
       // socket.to(calleeId).emit("decline-call", { callerId, calleeId, roomName })
     })
-  }catch(err){
-    io.emit('error', { message: 'error'});
+  } catch (err) {
+    io.emit('error', { message: 'error' });
   }
 
 });
