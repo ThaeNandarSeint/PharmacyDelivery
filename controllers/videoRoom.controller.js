@@ -99,7 +99,7 @@ const closeRoom = async (req, res, next) => {
 const listenTwilioEvent = (req, res, next) => {
     try{
         const event = req.body;
-
+        console.log(event)
         return res.status(204).json({ event })
         
     }catch(err){
