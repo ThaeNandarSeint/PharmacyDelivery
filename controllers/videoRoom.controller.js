@@ -18,7 +18,7 @@ const createRoom = async (req, res, next) => {
             type: 'go',
             statusCallback: `${process.env.SERVER_URL}/api/rooms/events`,
             statusCallbackMethod: 'POST',
-            emptyRoomTimeout: 1
+            // emptyRoomTimeout: 1
         });
 
         const token = getAccessToken(roomName, userId)
