@@ -15,11 +15,13 @@ const createRoom = async (req, res, next) => {
 
         const room = await twilioClient.video.v1.rooms.create({
             uniqueName: roomName,
-            type: 'go'
+            type: 'go',
+            statusCallback: `${process.env.SERVER_URL}/room-events`,
+            statusCallbackMethod: 'POST'
         });
 
         const token = getAccessToken(roomName, userId)
-        
+
         return res.status(200).json({ statusCode: 200, payload: { roomName: room.uniqueName, roomSid: room.sid, token }, message: "" })
 
     } catch (err) {
@@ -37,7 +39,7 @@ const getAllRooms = async (req, res, next) => {
         const rooms = await twilioClient.video.v1.rooms.list({ status: "in-progress" });
         // const rooms = await twilioClient.video.v1.rooms.list({ sid: 'RM399be3d56e9458fdfe8c6d5241d22083' });
         // const allRooms = await twilioClient.video.v1.rooms.list({ limit: 20 });
-        
+
 
         // if (!rooms.length) {
         //     return res.status(200).json({ statusCode: 200, payload: { activeRooms: rooms }, message: "No active rooms found" })
@@ -94,10 +96,22 @@ const closeRoom = async (req, res, next) => {
     }
 }
 
+const listenTwilioEvent = (req, res, next) => {
+    try{
+        const event = req.body;
+
+        return res.status(204).json({ event })
+        
+    }catch(err){
+        next(err)
+    }
+}
+
 
 module.exports = {
     createRoom,
     getAllRooms,
     getByRoomSid,
-    closeRoom
+    closeRoom,
+    listenTwilioEvent
 }

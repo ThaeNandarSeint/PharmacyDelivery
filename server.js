@@ -133,6 +133,7 @@ io.on("connection", (socket) => {
       socket.to(callerId).emit("acceptCall", { callerId, calleeId, roomName })
     })
 
+    // call end
     socket.on("callEnded", async ({ callerId, calleeId, roomSid, roomName }) => {
       const participantDeclineId = socket.user._id.toString()
 
