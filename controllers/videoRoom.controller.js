@@ -19,9 +19,8 @@ const createRoom = async (req, res, next) => {
         });
 
         const token = getAccessToken(roomName, userId)
-
-        return res.status(200).json({ statusCode: 200, payload: { room, roomSid: room.sid, token }, message: "" })
-        // return res.status(200).json({ statusCode: 200, payload: { roomName: room.uniqueName, roomSid: room.sid, token }, message: "" })
+        
+        return res.status(200).json({ statusCode: 200, payload: { roomName: room.uniqueName, roomSid: room.sid, token }, message: "" })
 
     } catch (err) {
         if (err.message === "identity is required to be specified in options") {
