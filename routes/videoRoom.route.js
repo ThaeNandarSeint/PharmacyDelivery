@@ -8,6 +8,6 @@ router.get('/:sid', getByRoomSid)
 router.post('/:sid/complete', closeRoom)
 
 // twilio
-router.post('/room-events', listenTwilioEvent)
+router.post('/events', listenTwilioEvent)
 
   module.exports = router;

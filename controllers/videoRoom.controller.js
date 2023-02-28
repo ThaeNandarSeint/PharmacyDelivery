@@ -16,8 +16,9 @@ const createRoom = async (req, res, next) => {
         const room = await twilioClient.video.v1.rooms.create({
             uniqueName: roomName,
             type: 'go',
-            statusCallback: `${process.env.SERVER_URL}/room-events`,
-            statusCallbackMethod: 'POST'
+            statusCallback: `${process.env.SERVER_URL}/api/rooms/events`,
+            statusCallbackMethod: 'POST',
+            emptyRoomTimeout: 0.5
         });
 
         const token = getAccessToken(roomName, userId)
