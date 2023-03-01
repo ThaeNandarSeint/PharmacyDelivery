@@ -153,7 +153,7 @@ io.on("connection", (socket) => {
     // click decline btn
     socket.on("declineCall", async ({ callerId, calleeId, roomSid, roomName }) => {
 
-      socket.to(callerId).emit("callDecline", { callerId, calleeId, roomSid, roomName })
+      socket.to(callerId).emit("declineCall", { callerId, calleeId, roomSid, roomName })
 
       await closeRoom({ sid: roomSid })
 
