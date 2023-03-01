@@ -18,7 +18,7 @@ const callLogSchema = new mongoose.Schema({
   participantDeclineId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',
-    required: true,
+    default: null
   },
 
   roomSid: {
@@ -36,13 +36,13 @@ const callLogSchema = new mongoose.Schema({
   },
   endTime: {
     type: Date,
-    required: [true, "Please enter call end time!"],
+    default: null
   },
 
 //   second
   callDuration: {
     type: Number,
-    required: [true, "Please enter call duration!"],
+    default: 0
   },
 },
 

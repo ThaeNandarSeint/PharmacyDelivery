@@ -49,17 +49,14 @@ const getAccessToken = (roomName, userId) => {
     return token.toJwt();
 };
 
-const createCallLog = async ({ callerId, calleeId, roomName, roomSid, participantDeclineId }) => {
+const createCallLog = async ({ callerId, calleeId, roomName, roomSid }) => {
     try {
-        const closedRoom = await twilioClient.video.v1.rooms.list({ uniqueName: roomName, status: 'completed' });
-
-        const { dateCreated, endTime, duration } = closedRoom[0]
-
+        const startTime = new Date(Date.now())
         // create custom id
         const id = await createCustomId(CallLogs, "C")
         if (id) {
             const newCallLog = new CallLogs({
-                id, callerId, calleeId, roomSid, roomName, startTime: dateCreated, endTime, callDuration: duration, participantDeclineId
+                id, callerId, calleeId, roomSid, roomName, startTime, 
             });
 
             const savedCallLog = await newCallLog.save();
@@ -70,6 +67,19 @@ const createCallLog = async ({ callerId, calleeId, roomName, roomSid, participan
     } catch (err) {
         console.log(err);
     }
+}
+
+const updateCallLog = async ({ roomName, participantDeclineId }) => {
+    const { startTime } = await CallLogs.findOne({ roomName })
+
+    const endTime = new Date(Date.now())
+
+    const duration = endTime.getTime() - startTime.getTime();
+    const durationInSeconds = Math.floor(duration / 1000);
+
+    await CallLogs.updateOne({ roomName }, {
+        endTime, participantDeclineId, callDuration: durationInSeconds
+    })
 }
 
 const closeRoom = async ({ sid }) => {
@@ -87,5 +97,6 @@ module.exports = {
     findOrCreateRoom,
     getAccessToken,
     createCallLog,
+    updateCallLog,
     closeRoom
 }
