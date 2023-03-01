@@ -5,6 +5,7 @@ const Users = require('../models/user.model')
 // services
 const { createCustomId } = require("../services/createCustomId");
 const { deleteImages } = require("../services/deleteImages");
+const { addMedicine, modifyMedicine } = require("../services/medicine.service");
 const { uploadImages } = require("../services/uploadImages");
 
 const getByMedicineId = async (req, res, next) => {
@@ -58,23 +59,23 @@ const getAllMedicines = async (req, res, next) => {
 
     let filterStage;
 
-    if(filterBy === "expiredDate"){
+    if (filterBy === "expiredDate") {
       filterStage = expiredDateFilter
 
-    } else if(filterBy === "price"){
+    } else if (filterBy === "price") {
       filterStage = priceFilter
 
-    } else if(filterBy === "stocks"){
+    } else if (filterBy === "stocks") {
       filterStage = stocksFilter
 
-    } else if(filterBy === "outOfStocks"){
+    } else if (filterBy === "outOfStocks") {
       filterStage = outOfStocksFilter
 
     }
     else {
       filterStage = dateFilter
     }
-    
+
     // lookup stage
     const categoryLookup = {
       from: "categories",
@@ -95,21 +96,20 @@ const getAllMedicines = async (req, res, next) => {
     // ------------------
     let sortStage;
 
-    if(sortBy === "orderCount"){
+    if (sortBy === "orderCount") {
       sortStage = { orderCount: -1 }
     } else
-    if(sortBy === "avgRating"){
-      sortStage = { avgRating: -1 }
-    } else
-    if(sortBy === "stocks"){
-      sortStage = { stocks: -1 }
-    } else
-    if(sortBy === "price"){
-      sortStage = { price: -1 }
-    } else
-    {
-      sortStage = { updatedAt: -1 }
-    }
+      if (sortBy === "avgRating") {
+        sortStage = { avgRating: -1 }
+      } else
+        if (sortBy === "stocks") {
+          sortStage = { stocks: -1 }
+        } else
+          if (sortBy === "price") {
+            sortStage = { price: -1 }
+          } else {
+            sortStage = { updatedAt: -1 }
+          }
 
     // ----------------------
     const limitStage = limit * 1
@@ -153,7 +153,7 @@ const addToFavourite = async (req, res, next) => {
       favouriteMedicines
     })
 
-    return res.status(200).json({ statusCode: 200, payload: {  }, message: "Successfully added!" })
+    return res.status(200).json({ statusCode: 200, payload: {}, message: "Successfully added!" })
 
   } catch (err) {
     next(err)
@@ -192,23 +192,6 @@ const createMedicine = async (req, res, next) => {
     const { categoryId, name, details, companyName, expiredAt, price, stocks } = req.body;
 
     const expiredDate = new Date(expiredAt)
-    // create custom id
-    const id = await createCustomId(Medicines, "M")
-
-    // store new medicine in mongodb
-    const storeNewMedicine = async (pictureUrls, picPublicIds) => {
-      if (id) {
-
-        const newMedicine = new Medicines({
-          id, categoryId, name, details, companyName, expiredDate, price, stocks, pictureUrls, picPublicIds,
-        });
-
-        const savedMedicine = await newMedicine.save();
-
-        return res.status(201).json({ statusCode: 201, payload: { medicine: savedMedicine }, message: "New Medicine has been successfully uploaded!" })
-
-      }
-    }
 
     // handle images
     const pictureUrls = [];
@@ -225,7 +208,15 @@ const createMedicine = async (req, res, next) => {
           picPublicIds.push(public_id);
         }
 
-        await storeNewMedicine(pictureUrls, picPublicIds)
+        const id = await createCustomId(Medicines, "M")
+
+        if (id) {
+
+          const savedMedicine = await addMedicine({ id, categoryId, name, details, companyName, expiredDate, price, stocks, pictureUrls, picPublicIds })
+
+          return res.status(201).json({ statusCode: 201, payload: { medicine: savedMedicine }, message: "New Medicine has been successfully uploaded!" })
+
+        }
 
       }).catch((err) => next(err))
 
@@ -260,11 +251,6 @@ const updateMedicine = async (req, res, next) => {
 
     const uploadPromises = uploadImages(req.files, req.folderName)
 
-    const updateMedicine = async (medicineId, payload) => {
-      await Medicines.findByIdAndUpdate(medicineId, payload);
-      return res.status(200).json({ statusCode: 200, payload: {  }, message: "Your Medicine has been successfully updated!" })
-    }
-
     // include photo in request body
     const pictureUrls = [];
     const picPublicIds = [];
@@ -278,19 +264,19 @@ const updateMedicine = async (req, res, next) => {
           picPublicIds.push(public_id);
         }
 
-        await updateMedicine(req.params.id,
-          {
-            categoryId,
-            name,
-            details,
-            companyName,
-            expiredDate,
-            price,
-            stocks,
-            pictureUrls,
-            picPublicIds,
-          })
+        await modifyMedicine(req.params.id, {
+          categoryId,
+          name,
+          details,
+          companyName,
+          expiredDate,
+          price,
+          stocks,
+          pictureUrls,
+          picPublicIds,
+        })
 
+        return res.status(200).json({ statusCode: 200, payload: {}, message: "Your Medicine has been successfully updated!" })
       })
 
   } catch (err) {
@@ -305,7 +291,7 @@ const deleteMedicine = async (req, res, next) => {
 
     const deleteMedicine = async (medicineId) => {
       await Medicines.findByIdAndDelete(medicineId);
-      return res.status(200).json({ statusCode: 200, payload: {  }, message: "Your category has been successfully deleted!" })
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your category has been successfully deleted!" })
     }
 
     // not include photo

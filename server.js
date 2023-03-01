@@ -121,10 +121,10 @@ io.on("connection", (socket) => {
     });
 
     // click call btn
-    socket.on("startCall", async ({ callerId, calleeId, roomName }) => {
+    socket.on("startCall", async ({ callerId, calleeId, roomName, roomSid }) => {
       if (callerId !== calleeId) {
         const token = getAccessToken(roomName, calleeId)
-        socket.to(calleeId).emit("calling", { roomName, token, caller: user })
+        socket.to(calleeId).emit("calling", { roomName, token, caller: user, roomSid })
       }
     });
 
@@ -153,7 +153,7 @@ io.on("connection", (socket) => {
     // click decline btn
     socket.on("declineCall", async ({ callerId, calleeId, roomSid, roomName }) => {
 
-      socket.to(callerId).emit("declineCall", { callerId, calleeId, roomSid, roomName })
+      socket.to(callerId).emit("callDecline", { callerId, calleeId, roomSid, roomName })
 
       await closeRoom({ sid: roomSid })
 

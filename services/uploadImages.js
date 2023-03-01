@@ -19,36 +19,35 @@ const uploadImages = (files, folderName) => {
         return pictures
     }
 
-        const { pictures } = files        
+    const { pictures } = files
 
-        const uploadPromises = [];
+    const uploadPromises = [];
 
-        if(!pictures.length){
-            // validatePicture(pictures)
-            uploadPromises.push(cloudinary.v2.uploader.upload(pictures.tempFilePath, {
-                folder: `${folderName}/`,
-                width: 600,
-                height: 600,
-                crop: 'fill'
-            }));
-        }        
+    if (!pictures.length) {
+        // validatePicture(pictures)
+        uploadPromises.push(cloudinary.v2.uploader.upload(pictures.tempFilePath, {
+            folder: `${folderName}/`,
+            width: 600,
+            height: 600,
+            crop: 'fill'
+        }));
+    }
 
-        for (let i = 0; i < pictures.length; i++) {
-            const picture = pictures[i];
+    for (let i = 0; i < pictures.length; i++) {
+        const picture = pictures[i];
 
-            // validatePicture(picture)
+        // validatePicture(picture)
 
-            uploadPromises.push(cloudinary.v2.uploader.upload(picture.tempFilePath, {
-                folder: `${folderName}/`,
-                width: 600,
-                height: 600,
-                crop: 'fill'
-            }));
-        }
-        
-        if (uploadPromises.length) {
-            return uploadPromises
-        }
+        uploadPromises.push(cloudinary.v2.uploader.upload(picture.tempFilePath, {
+            folder: `${folderName}/`,
+            width: 600,
+            height: 600,
+            crop: 'fill'
+        }));
+    }
+    if(uploadPromises.length){
+        return uploadPromises
+    }    
 }
 
 const validatePicture = (picture) => {
