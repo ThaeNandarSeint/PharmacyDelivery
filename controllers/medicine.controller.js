@@ -5,7 +5,7 @@ const Users = require('../models/user.model')
 // services
 const { createCustomId } = require("../services/createCustomId");
 const { deleteImages } = require("../services/deleteImages");
-const { addMedicine, modifyMedicine } = require("../services/medicine.service");
+const { addMedicine, modifyMedicine, removeMedicine } = require("../services/medicine.service");
 const { uploadImages } = require("../services/uploadImages");
 
 const getByMedicineId = async (req, res, next) => {
@@ -289,21 +289,20 @@ const deleteMedicine = async (req, res, next) => {
   try {
     const { picPublicIds } = await Medicines.findById(req.params.id);
 
-    const deleteMedicine = async (medicineId) => {
-      await Medicines.findByIdAndDelete(medicineId);
-      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your category has been successfully deleted!" })
-    }
-
     // not include photo
     if (picPublicIds[0] === "") {
-      await deleteMedicine(req.params.id)
+      await removeMedicine(req.params.id)
+      
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your category has been successfully deleted!" })
     }
 
     // include photo
     const deletePromises = deleteImages(picPublicIds)
     Promise.all(deletePromises).then(async () => {
 
-      await deleteMedicine(req.params.id)
+      await removeMedicine(req.params.id)
+
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your category has been successfully deleted!" })
 
     }).catch((err) => {
 

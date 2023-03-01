@@ -31,32 +31,39 @@ const findOrCreateRoom = async (roomName) => {
 }
 
 const getAccessToken = (roomName, userId) => {
-    const token = new AccessToken(
-        process.env.TWILIO_ACCOUNT_SID,
-        process.env.TWILIO_API_KEY_SID,
-        process.env.TWILIO_API_KEY_SECRET,
+    try{
+        
+        const token = new AccessToken(
+            process.env.TWILIO_ACCOUNT_SID,
+            process.env.TWILIO_API_KEY_SID,
+            process.env.TWILIO_API_KEY_SECRET,
+    
+            { identity: userId }
+        );
+    
+        const videoGrant = new VideoGrant({
+            room: roomName,
+        });
+    
+    
+        token.addGrant(videoGrant);
+    
+        return token.toJwt();
 
-        { identity: userId }
-    );
-
-    const videoGrant = new VideoGrant({
-        room: roomName,
-    });
-
-
-    token.addGrant(videoGrant);
-
-    return token.toJwt();
+    }catch(err){
+        console.log(err);
+    }
 };
 
 const createCallLog = async ({ callerId, calleeId, roomName, roomSid }) => {
     try {
         const startTime = new Date(Date.now())
+        const endTime = new Date(Date.now())
         // create custom id
         const id = await createCustomId(CallLogs, "C")
         if (id) {
             const newCallLog = new CallLogs({
-                id, callerId, calleeId, roomSid, roomName, startTime, 
+                id, callerId, calleeId, roomSid, roomName, startTime, endTime
             });
 
             const savedCallLog = await newCallLog.save();
@@ -70,16 +77,21 @@ const createCallLog = async ({ callerId, calleeId, roomName, roomSid }) => {
 }
 
 const updateCallLog = async ({ roomName, participantDeclineId }) => {
-    const { startTime } = await CallLogs.findOne({ roomName })
+    try {
+        const { startTime } = await CallLogs.findOne({ roomName })
 
-    const endTime = new Date(Date.now())
+        const endTime = new Date(Date.now())
 
-    const duration = endTime.getTime() - startTime.getTime();
-    const durationInSeconds = Math.floor(duration / 1000);
+        const duration = endTime.getTime() - startTime.getTime();
+        const durationInSeconds = Math.floor(duration / 1000);
 
-    await CallLogs.updateOne({ roomName }, {
-        endTime, participantDeclineId, callDuration: durationInSeconds
-    })
+        await CallLogs.updateOne({ roomName }, {
+            endTime, participantDeclineId, callDuration: durationInSeconds
+        })
+
+    } catch (err) {
+        console.log(err);
+    }
 }
 
 const closeRoom = async ({ sid }) => {

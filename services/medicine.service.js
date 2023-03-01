@@ -38,12 +38,12 @@ const modifyMedicine = async (medicineId, {
     });
 }
 
-const deleteMedicine = async () => {
-
+const removeMedicine = async (medicineId) => {
+    await Medicines.findByIdAndDelete(medicineId);
 }
 
 module.exports = {
     addMedicine,
     modifyMedicine,
-    deleteMedicine
+    removeMedicine
 }
