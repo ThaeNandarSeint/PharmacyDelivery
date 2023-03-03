@@ -15,11 +15,6 @@ const callLogSchema = new mongoose.Schema({
     ref: 'Users',
     required: true,
   },
-  participantDeclineId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Users',
-    default: null
-  },
 
   roomSid: {
     type: String,
@@ -37,6 +32,10 @@ const callLogSchema = new mongoose.Schema({
   endTime: {
     type: Date,
     default: null
+  },
+  callStatus: {
+    type: String,
+    enum: ['completed', 'missed', 'declined']
   },
 
 //   second

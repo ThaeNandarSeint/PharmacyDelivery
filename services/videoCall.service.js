@@ -31,8 +31,10 @@ const findOrCreateRoom = async (roomName) => {
 }
 
 const getAccessToken = (roomName, userId) => {
+    let payload = { error: "" }
+
     try{
-        
+
         const token = new AccessToken(
             process.env.TWILIO_ACCOUNT_SID,
             process.env.TWILIO_API_KEY_SID,
@@ -51,12 +53,19 @@ const getAccessToken = (roomName, userId) => {
         return token.toJwt();
 
     }catch(err){
-        console.log(err);
+        payload.error = err.message
+
+    } finally {
+        return payload
     }
 };
 
 const createCallLog = async ({ callerId, calleeId, roomName, roomSid }) => {
+
+    let payload = { error: "" }
+
     try {
+
         const startTime = new Date(Date.now())
         const endTime = new Date(Date.now())
         // create custom id
@@ -66,17 +75,20 @@ const createCallLog = async ({ callerId, calleeId, roomName, roomSid }) => {
                 id, callerId, calleeId, roomSid, roomName, startTime, endTime
             });
 
-            const savedCallLog = await newCallLog.save();
-
-            return savedCallLog
+            savedCallLog = await newCallLog.save();
         }
 
     } catch (err) {
-        console.log(err);
+        payload.error = err.message
+
+    } finally{
+        return payload
     }
 }
 
-const updateCallLog = async ({ roomName, participantDeclineId }) => {
+const updateCallLog = async ({ roomName }) => {
+    let payload = { error: "" }
+
     try {
         const { startTime } = await CallLogs.findOne({ roomName })
 
@@ -86,22 +98,30 @@ const updateCallLog = async ({ roomName, participantDeclineId }) => {
         const durationInSeconds = Math.floor(duration / 1000);
 
         await CallLogs.updateOne({ roomName }, {
-            endTime, participantDeclineId, callDuration: durationInSeconds
+            endTime, callDuration: durationInSeconds
         })
 
     } catch (err) {
-        console.log(err);
+        payload.error = err.message
+
+    } finally{
+        return payload
     }
 }
 
 const closeRoom = async ({ sid }) => {
+    let payload = { error: "" }
+
     try {
         const closedRoom = await twilioClient.video.v1.rooms(sid).update({ status: 'completed' })
 
         return closedRoom
 
-    } catch (error) {
-        console.log(error);
+    } catch (err) {
+        payload.error = err.message
+
+    } finally{
+        return payload
     }
 }
 

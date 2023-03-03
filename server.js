@@ -129,15 +129,21 @@ io.on("connection", (socket) => {
     });
 
     // click accept btn
-    socket.on("acceptCall", async ({ callerId, calleeId, roomName, roomSid }) => {
+    socket.on("acceptCall", async ({ callerId, calleeId, roomName, roomSid }, callback) => {
 
       socket.to(callerId).emit("acceptCall", { callerId, calleeId, roomName, roomSid })
 
-      await createCallLog({ callerId, calleeId, roomName, roomSid })
+      const { error } = await createCallLog({ callerId, calleeId, roomName, roomSid })
+
+      if(error){
+        callback({ status: "not ok", message: error });
+      }
+
     })
 
     // call end
-    socket.on("callEnded", async ({ callerId, calleeId, roomSid, roomName }) => {
+    socket.on("callEnded", async ({ callerId, calleeId, roomSid, roomName }, callback) => {
+
       const participantDeclineId = socket.user._id.toString() //subject
 
       const declinedParticipantId = participantDeclineId === callerId ? calleeId : callerId; //object
@@ -146,7 +152,7 @@ io.on("connection", (socket) => {
 
       await closeRoom({ sid: roomSid })
 
-      await updateCallLog({ callerId, calleeId, roomName, roomSid, participantDeclineId })
+      await updateCallLog({ callerId, calleeId, roomName, roomSid, callStatus: 'completed' })
 
     })
 
@@ -157,7 +163,7 @@ io.on("connection", (socket) => {
 
       await closeRoom({ sid: roomSid })
 
-      await createCallLog({ callerId, calleeId, roomName, roomSid, participantDeclineId: calleeId })
+      await createCallLog({ callerId, calleeId, roomName, roomSid, callStatus: 'declined' })
     })
 
   } catch (err) {

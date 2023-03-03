@@ -3,6 +3,7 @@ const Orders = require('../models/order.model')
 const Medicines = require('../models/medicine.model')
 const DeliveryInfos = require('../models/deliveryInfo.model')
 const DeliveryPersons = require('../models/deliveryPerson.model')
+const OrderDetails = require('../models/orderDetail.model')
 
 // services
 const sendMail = require('../services/sendMail')
@@ -59,6 +60,15 @@ const createOrder = async (req, res, next) => {
         const totalPrice = add(priceArray)
         const totalQuantity = add(quantityArray)
 
+        const newOrderDetails = await OrderDetails.insertMany(medicines)
+        
+        let orderDetails = []
+
+        for (let i = 0; i < newOrderDetails.length; i++) {
+            const { _id } = newOrderDetails[i];
+            orderDetails.push(_id)
+        }
+
         // create custom id
         const id = await createCustomId(Orders, "O")
 
@@ -67,14 +77,14 @@ const createOrder = async (req, res, next) => {
         if (id) {
             // store new order in mongodb
             const newOrder = new Orders({
-                id, userId, medicines, address, totalPrice, totalQuantity, status: 'pending'
+                id, userId, orderDetails, address, totalPrice, totalQuantity, status: 'pending'
             })
             const savedOrder = await newOrder.save()
 
             Promise.all(uploadPromises).then(() => {
 
                 const html = orderConfirmHtml()
-                sendMail(email, html)
+                // sendMail(email, html)
 
                 return res.status(201).json({ statusCode: 201, payload: { order: savedOrder }, message: "New order has been successfully created!" })
             })
@@ -242,6 +252,13 @@ const getAllOrders = async (req, res, next) => {
                 $eq: status
             }
         }
+        const orderDetailLookup = {
+            from: "orderdetails",
+            localField: "orderDetails",
+            foreignField: "_id",
+            as: "orderDetail",
+        }
+
         const userLookup = {
             from: "users",
             localField: "userId",
@@ -250,9 +267,9 @@ const getAllOrders = async (req, res, next) => {
         }
         const medicineLookup = {
             from: "medicines",
-            localField: "medicines.medicineId",
+            localField: "medicines[0].medicineId",
             foreignField: "_id",
-            as: "medicineDetail",
+            as: "medicineDetails",
         }
         const categoryLookup = {
             from: "categories",
@@ -285,12 +302,16 @@ const getAllOrders = async (req, res, next) => {
         const pipelines = [
             { $match: dateFilter },
             { $match: statusFilter },
-            { $lookup: userLookup },
-            { $lookup: medicineLookup },
-            { $unwind: "$medicineDetail" },
-            { $lookup: categoryLookup },
-            { $unwind: "$categoryDetail" },
-            { $match: matchStage },
+
+            { $unwind: "$orderDetails" },
+            { $lookup: orderDetailLookup },
+
+            // { $lookup: userLookup },
+            // { $lookup: medicineLookup },
+            // { $unwind: "$medicineDetails" },
+            // { $lookup: categoryLookup },
+            // { $unwind: "$categoryDetail" },
+            // { $match: matchStage },
             // { $group: groupStage },
 
             { $sort: { updatedAt: -1 } },

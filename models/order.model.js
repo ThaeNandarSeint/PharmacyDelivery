@@ -6,18 +6,12 @@ const orderSchema = new mongoose.Schema({
         required: [true, "Please enter order id!"],
     },
 
-    medicines: [
+    orderDetails: [
         {
-            medicineId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Medicines',
-                default: ''
-            },
-            quantity: {
-                type: Number,
-                default: 0
-            }
-        }
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'OrderDetails',
+            default: ''
+        },
     ],
 
     totalQuantity: {
