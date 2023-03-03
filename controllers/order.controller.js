@@ -296,6 +296,22 @@ const getAllOrders = async (req, res, next) => {
             }
         }
 
+        const projectStage = {
+            "userDetail._id": 0,
+            "userDetail.id": 0,
+            "userDetail.email": 0,
+            "userDetail.password": 0,
+            "userDetail.pictureUrls": 0,
+            "userDetail.picPublicIds": 0,
+
+            "userDetail.isTwoFactor": 0,
+            "userDetail.phoneNumber": 0,
+            "userDetail.favouriteMedicines": 0,
+            "userDetail.createdAt": 0,
+            "userDetail.updatedAt": 0,
+            "userDetail.roleType": 0,
+        }
+
         const limitStage = limit * 1
         const skipStage = (page - 1) * limit
 
@@ -303,15 +319,16 @@ const getAllOrders = async (req, res, next) => {
             { $match: dateFilter },
             { $match: statusFilter },
 
-            { $unwind: "$orderDetails" },
-            { $lookup: orderDetailLookup },
+            // { $unwind: "$orderDetails" },
+            // { $lookup: orderDetailLookup },
 
-            // { $lookup: userLookup },
+            { $lookup: userLookup },
+            { $project: projectStage },
             // { $lookup: medicineLookup },
             // { $unwind: "$medicineDetails" },
             // { $lookup: categoryLookup },
             // { $unwind: "$categoryDetail" },
-            // { $match: matchStage },
+            { $match: matchStage },
             // { $group: groupStage },
 
             { $sort: { updatedAt: -1 } },

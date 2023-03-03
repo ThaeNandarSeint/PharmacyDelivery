@@ -31,7 +31,6 @@ const findOrCreateRoom = async (roomName) => {
 }
 
 const getAccessToken = (roomName, userId) => {
-    let payload = { error: "" }
 
     try{
 
@@ -53,11 +52,8 @@ const getAccessToken = (roomName, userId) => {
         return token.toJwt();
 
     }catch(err){
-        payload.error = err.message
-
-    } finally {
-        return payload
-    }
+        next(err)
+    } 
 };
 
 const createCallLog = async ({ callerId, calleeId, roomName, roomSid }) => {
