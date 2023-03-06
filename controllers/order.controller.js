@@ -82,7 +82,7 @@ const createOrder = async (req, res, next) => {
                 // const html = orderConfirmHtml()
                 // // sendMail(email, html)
 
-                return res.status(201).json({ statusCode: 201, payload: { order: savedOrder }, message: "New order has been successfully created!" })
+                return res.status(201).json({ statusCode: 201, payload: savedOrder, message: "New order has been successfully created!" })
             })
         }
 
