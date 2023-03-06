@@ -56,19 +56,16 @@ const getAccessToken = (roomName, userId) => {
     } 
 };
 
-const createCallLog = async ({ callerId, calleeId, roomName, roomSid }) => {
+const createCallLog = async ({ callerId, calleeId, roomName, roomSid , callStatus}) => {
 
     let payload = { error: "" }
 
     try {
-
-        const startTime = new Date(Date.now())
-        const endTime = new Date(Date.now())
         // create custom id
         const id = await createCustomId(CallLogs, "C")
         if (id) {
             const newCallLog = new CallLogs({
-                id, callerId, calleeId, roomSid, roomName, startTime, endTime
+                id, callerId, calleeId, roomSid, roomName, callStatus
             });
 
             savedCallLog = await newCallLog.save();
@@ -82,22 +79,71 @@ const createCallLog = async ({ callerId, calleeId, roomName, roomSid }) => {
     }
 }
 
-const updateCallLog = async ({ roomName }) => {
+const updateCallLog = async ({ roomName, start, end, callStatus }) => {
     let payload = { error: "" }
 
     try {
-        const { startTime } = await CallLogs.findOne({ roomName })
+        // let callDuration = 0
 
-        const endTime = new Date(Date.now())
+        if(callStatus === "completed"){
+            const { startTime } = await CallLogs.findOne({ roomName })
 
-        const duration = endTime.getTime() - startTime.getTime();
-        const durationInSeconds = Math.floor(duration / 1000);
+            const duration = end.getTime() - startTime.getTime();
+            const callDuration = Math.floor(duration / 1000);
 
-        await CallLogs.updateOne({ roomName }, {
-            endTime, callDuration: durationInSeconds
-        })
+            await CallLogs.updateOne({ roomName }, {
+                startTime, endTime: end, callDuration, callStatus
+            })
+        }
 
-    } catch (err) {
+        if(callStatus === "declined"){
+            const duration = end.getTime() - start.getTime();
+            const callDuration = Math.floor(duration / 1000);
+
+            await CallLogs.updateOne({ roomName }, {
+                startTime: start, endTime: end, callDuration, callStatus
+            })
+        }
+
+        if(callStatus === "ongoing"){
+            await CallLogs.updateOne({ roomName }, {
+                startTime: start, endTime: null, callDuration: 0, callStatus
+            })
+        }
+
+        if(callStatus === "missedCall"){
+            const duration = end.getTime() - start.getTime();
+            const callDuration = Math.floor(duration / 1000);
+
+            await CallLogs.updateOne({ roomName }, {
+                startTime: start, endTime: end, callDuration, callStatus
+            })
+        }
+
+        // await CallLogs.updateOne({ roomName }, {
+        //     startTime: start, endTime: end, callDuration, callStatus
+        // })
+        
+        
+        // // decline, callEnded
+        // if(end){          
+        //     const duration = end.getTime() - startTime.getTime();
+        //     callDuration = Math.floor(duration / 1000);
+        // }     
+
+        // // callEnded
+        // if(!startTime){
+        //     await CallLogs.updateOne({ roomName }, {
+        //         endTime, callDuration, callStatus
+        //     })
+        // }
+        
+        // // decline
+        // await CallLogs.updateOne({ roomName }, {
+        //     startTime, endTime, callDuration, callStatus
+        // })
+
+    } catch (err) {        
         payload.error = err.message
 
     } finally{
@@ -121,10 +167,28 @@ const closeRoom = async ({ sid }) => {
     }
 }
 
+const checkCallStatus = async ({ roomName }) => {
+    let payload = { callStatus: null, error: null }
+
+    try{
+
+        const { callStatus } = await CallLogs.findOne({ roomName })
+
+        payload.callStatus = callStatus
+
+    } catch(err) {
+        payload.error = err.message
+
+    } finally {
+        return payload
+    }
+}
+
 module.exports = {
     findOrCreateRoom,
     getAccessToken,
     createCallLog,
     updateCallLog,
-    closeRoom
+    closeRoom,
+    checkCallStatus
 }

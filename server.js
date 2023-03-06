@@ -58,7 +58,7 @@ app.use("/api/rooms", userAuth, videoRoomRoute);
 // socket setup
 const socket = require("socket.io");
 const jwt = require('jsonwebtoken')
-const { getAccessToken, createCallLog, closeRoom, updateCallLog } = require("./services/videoCall.service");
+const { getAccessToken, createCallLog, closeRoom, updateCallLog, checkCallStatus } = require("./services/videoCall.service");
 const Users = require('./models/user.model')
 
 const CLIENT_URL = process.env.CLIENT_URL;
@@ -123,26 +123,62 @@ io.on("connection", (socket) => {
     // click call btn
     socket.on("startCall", async ({ callerId, calleeId, roomName, roomSid }) => {
       if (callerId !== calleeId) {
+
         const token = getAccessToken(roomName, calleeId)
         socket.to(calleeId).emit("calling", { roomName, token, caller: user, roomSid })
+
+        await createCallLog({ callerId, calleeId, roomName, roomSid, callStatus: 'calling' })
       }
+
+      const thirtySecond = 30 * 1000
+
+      setTimeout(async () => {
+
+        const { callStatus, error } = await checkCallStatus({ roomName })
+
+        if (callStatus === "calling") {
+
+          const start = new Date(Date.now())
+          const end = new Date(Date.now())
+
+          socket.emit('missedCall', { callerId, calleeId, roomName, roomSid })
+          socket.to(calleeId).emit('missedCall', { callerId, calleeId, roomName, roomSid })
+
+          await closeRoom({ sid: roomSid })
+
+          const { error } = await updateCallLog({ roomName, start, end, callStatus: 'missedCall' })
+
+          if (error) {
+            console.log(error);
+            // callback({ status: "not ok", message: error });
+          }        
+
+        }
+        if (error) {
+          // callback({ status: "not ok", message: error });
+        }
+
+      }, thirtySecond)
+
     });
 
     // click accept btn
-    socket.on("acceptCall", async ({ callerId, calleeId, roomName, roomSid }, callback) => {
+    socket.on("acceptCall", async ({ callerId, calleeId, roomName, roomSid }) => {
 
       socket.to(callerId).emit("acceptCall", { callerId, calleeId, roomName, roomSid })
 
-      const { error } = await createCallLog({ callerId, calleeId, roomName, roomSid })
+      const start = new Date(Date.now())
 
-      if(error){
-        callback({ status: "not ok", message: error });
+      const { error } = await updateCallLog({ roomName, start, callStatus: 'ongoing' })
+
+      if (error) {
+        // callback({ status: "not ok", message: error });
       }
 
     })
 
     // call end
-    socket.on("callEnded", async ({ callerId, calleeId, roomSid, roomName }, callback) => {
+    socket.on("callEnded", async ({ callerId, calleeId, roomSid, roomName }) => {
 
       const participantDeclineId = socket.user._id.toString() //subject
 
@@ -152,18 +188,33 @@ io.on("connection", (socket) => {
 
       await closeRoom({ sid: roomSid })
 
-      await updateCallLog({ callerId, calleeId, roomName, roomSid, callStatus: 'completed' })
+      const end = new Date(Date.now())
+
+      const { error } = await updateCallLog({ roomName, end, callStatus: 'completed' })
+      console.log(error);
+
+      if (error) {
+        // callback({ status: "not ok", message: error });
+      }
 
     })
 
     // click decline btn
     socket.on("declineCall", async ({ callerId, calleeId, roomSid, roomName }) => {
 
+      const start = new Date(Date.now())
+      const end = new Date(Date.now())
+
       socket.to(callerId).emit("declineCall", { callerId, calleeId, roomSid, roomName })
 
       await closeRoom({ sid: roomSid })
 
-      await createCallLog({ callerId, calleeId, roomName, roomSid, callStatus: 'declined' })
+      const { error } = await updateCallLog({ roomName, start, end, callStatus: 'declined' })
+
+      if (error) {
+        // callback({ status: "not ok", message: error });
+      }
+
     })
 
   } catch (err) {

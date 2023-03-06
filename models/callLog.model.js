@@ -24,18 +24,18 @@ const callLogSchema = new mongoose.Schema({
     type: String,
     required: [true, "Please enter room name!"],
   },
+  callStatus: {
+    type: String,
+    enum: ['calling', 'ongoing', 'completed', 'missed', 'declined']
+  },
 
   startTime: {
     type: Date,
-    required: [true, "Please enter call start time!"],
+    default: null
   },
   endTime: {
     type: Date,
     default: null
-  },
-  callStatus: {
-    type: String,
-    enum: ['completed', 'missed', 'declined']
   },
 
 //   second
