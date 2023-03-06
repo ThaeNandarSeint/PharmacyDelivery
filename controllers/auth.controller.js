@@ -76,7 +76,7 @@ const register = async (req, res, next) => {
             // create token
             const accessToken = createAccessToken({ id: savedUser._id })
 
-            return res.status(201).json({ statusCode: 201, payload: { user: savedUser, accessToken }, message: "Account has been created!" })
+            return res.status(201).json({ statusCode: 201, payload: { user: savedUser, accessToken, roleType: savedUser.roleType }, message: "Account has been created!" })
         }
 
     } catch (err) {
@@ -126,7 +126,7 @@ const activateEmail = async (req, res, next) => {
                 // create token
                 const accessToken = createAccessToken({ id: savedUser._id })
 
-                return res.status(201).json({ statusCode: 201, payload: { user: savedUser, accessToken }, message: "Account has been created!" })
+                return res.status(201).json({ statusCode: 201, payload: { user: savedUser, accessToken, roleType: savedUser.roleType }, message: "Account has been created!" })
             }
         })
 
@@ -165,7 +165,7 @@ const login = async (req, res, next) => {
         // create token
         const accessToken = createAccessToken({ id: user._id })
 
-        return res.status(200).json({ statusCode: 200, payload: { user, accessToken }, message: "Login Success!" })
+        return res.status(200).json({ statusCode: 200, payload: { user, accessToken, roleType: user.roleType }, message: "Login Success!" })
 
     } catch (err) {
         next(err);

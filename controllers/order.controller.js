@@ -15,11 +15,7 @@ const createOrder = async (req, res, next) => {
     try {
         const userId = req.user.id
 
-        const { medicines, buildingNo, street, quarter, township, city, state } = req.body
-
-        const address = {
-            buildingNo, street, quarter, township, city, state
-        }
+        const { medicines, address } = req.body
 
         let uploadPromises = []
         let quantityArray = []
@@ -60,14 +56,14 @@ const createOrder = async (req, res, next) => {
         const totalPrice = add(priceArray)
         const totalQuantity = add(quantityArray)
 
-        const newOrderDetails = await OrderDetails.insertMany(medicines)
+        // const newOrderDetails = await OrderDetails.insertMany(medicines)
         
-        let orderDetails = []
+        // let orderDetails = []
 
-        for (let i = 0; i < newOrderDetails.length; i++) {
-            const { _id } = newOrderDetails[i];
-            orderDetails.push(_id)
-        }
+        // for (let i = 0; i < newOrderDetails.length; i++) {
+        //     const { _id } = newOrderDetails[i];
+        //     orderDetails.push(_id)
+        // }
 
         // create custom id
         const id = await createCustomId(Orders, "O")
@@ -77,14 +73,14 @@ const createOrder = async (req, res, next) => {
         if (id) {
             // store new order in mongodb
             const newOrder = new Orders({
-                id, userId, orderDetails, address, totalPrice, totalQuantity, status: 'pending'
+                id, userId, address, orderDetails: medicines, totalPrice, totalQuantity, status: 'pending'
             })
             const savedOrder = await newOrder.save()
 
             Promise.all(uploadPromises).then(() => {
 
-                const html = orderConfirmHtml()
-                // sendMail(email, html)
+                // const html = orderConfirmHtml()
+                // // sendMail(email, html)
 
                 return res.status(201).json({ statusCode: 201, payload: { order: savedOrder }, message: "New order has been successfully created!" })
             })
@@ -319,11 +315,12 @@ const getAllOrders = async (req, res, next) => {
             { $match: dateFilter },
             { $match: statusFilter },
 
+            { $lookup: userLookup },
+            { $project: projectStage },            
+
             // { $unwind: "$orderDetails" },
             // { $lookup: orderDetailLookup },
 
-            { $lookup: userLookup },
-            { $project: projectStage },
             // { $lookup: medicineLookup },
             // { $unwind: "$medicineDetails" },
             // { $lookup: categoryLookup },

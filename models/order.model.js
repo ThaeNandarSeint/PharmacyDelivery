@@ -7,11 +7,22 @@ const orderSchema = new mongoose.Schema({
     },
 
     orderDetails: [
+        // {
+        //     type: mongoose.Schema.Types.ObjectId,
+        //     ref: 'OrderDetails',
+        //     default: ''
+        // },
         {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'OrderDetails',
-            default: ''
-        },
+            medicineId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Medicines',
+                default: ''
+            },
+            quantity: {
+                type: Number,
+                default: 0
+            }
+        }
     ],
 
     totalQuantity: {
@@ -40,30 +51,8 @@ const orderSchema = new mongoose.Schema({
     },
 
     address: {
-        buildingNo: {
-            type: String,
-            required: [true, "Please enter building number!"],
-        },
-        street: {
-            type: String,
-            required: [true, "Please enter street name!"],
-        },
-        quarter: {
-            type: String,
-            required: [true, "Please enter quarter name!"],
-        },
-        township: {
-            type: String,
-            required: [true, "Please enter township name!"],
-        },
-        city: {
-            type: String,
-            required: [true, "Please enter city name!"],
-        },
-        state: {
-            type: String,
-            required: [true, "Please enter state name!"],
-        }
+        type: String,
+        required: [true, "Please enter customer address!"],
     }
 
 }, {
