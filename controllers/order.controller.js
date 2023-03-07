@@ -15,16 +15,16 @@ const createOrder = async (req, res, next) => {
     try {
         const userId = req.user.id
 
-        const { medicines, address } = req.body
+        const { orderDetails, address } = req.body
 
         let uploadPromises = []
         let quantityArray = []
         let priceArray = []
 
-        for (let i = 0; i < medicines.length; i++) {
-            const { medicineId, quantity } = medicines[i];
+        for (let i = 0; i < orderDetails.length; i++) {
+            const { medicine, quantity } = orderDetails[i];
 
-            const { stocks, name, orderCount, price } = await Medicines.findById(medicineId)
+            const { stocks, name, orderCount, price } = await Medicines.findById(medicine)
             if (!stocks) {
                 const error = new Error(`This medicine ${name} is out of stocks!`);
                 error.status = 410;
@@ -42,7 +42,7 @@ const createOrder = async (req, res, next) => {
 
             const newOrderCount = orderCount + 1
 
-            uploadPromises.push(Medicines.findByIdAndUpdate(medicineId, { stocks: newStock, orderCount: newOrderCount }))
+            uploadPromises.push(Medicines.findByIdAndUpdate(medicine, { stocks: newStock, orderCount: newOrderCount }))
         }
 
         const add = (array) => {
@@ -56,15 +56,6 @@ const createOrder = async (req, res, next) => {
         const totalPrice = add(priceArray)
         const totalQuantity = add(quantityArray)
 
-        // const newOrderDetails = await OrderDetails.insertMany(medicines)
-        
-        // let orderDetails = []
-
-        // for (let i = 0; i < newOrderDetails.length; i++) {
-        //     const { _id } = newOrderDetails[i];
-        //     orderDetails.push(_id)
-        // }
-
         // create custom id
         const id = await createCustomId(Orders, "O")
 
@@ -73,8 +64,9 @@ const createOrder = async (req, res, next) => {
         if (id) {
             // store new order in mongodb
             const newOrder = new Orders({
-                id, userId, address, orderDetails: medicines, totalPrice, totalQuantity, status: 'pending'
+                id, user: userId, address, orderDetails, totalPrice, totalQuantity, status: 'pending'
             })
+
             const savedOrder = await newOrder.save()
 
             Promise.all(uploadPromises).then(() => {
@@ -219,9 +211,11 @@ const cancelOrder = async (req, res, next) => {
 
 const getByOrderId = async (req, res, next) => {
     try {
-        const order = await Orders.findById(req.params.id)
+        const order = await Orders.findById(req.params.id).populate({ path: 'orderDetails.medicine' }).exec()
 
-        return res.status(200).json({ statusCode: 200, payload: order, message: "" })
+        const populatedOrder = await Orders.populate(order, { path: 'user', select: "name pictureUrls phoneNumber email" })
+
+        return res.status(200).json({ statusCode: 200, payload: populatedOrder, message: "" })
 
     } catch (err) {
         next(err);
@@ -249,31 +243,14 @@ const getAllOrders = async (req, res, next) => {
                 $eq: status
             }
         }
-        const orderDetailLookup = {
-            from: "orderdetails",
-            localField: "orderDetails",
-            foreignField: "_id",
-            as: "orderDetail",
-        }
 
         const userLookup = {
             from: "users",
-            localField: "userId",
+            localField: "user",
             foreignField: "_id",
             as: "userDetail",
         }
-        const medicineLookup = {
-            from: "medicines",
-            localField: "medicines[0].medicineId",
-            foreignField: "_id",
-            as: "medicineDetails",
-        }
-        const categoryLookup = {
-            from: "categories",
-            localField: "medicineDetail.categoryId",
-            foreignField: "_id",
-            as: "categoryDetail",
-        }
+
         const matchStage = {
             $or: [
                 { "userDetail.name": { $regex: userName } },
@@ -281,17 +258,6 @@ const getAllOrders = async (req, res, next) => {
                 // { "categoryDetail.title": { $regex: categoryTitle } },
             ],
         }
-
-        // const groupStage = {
-        //     _id: "$_id",
-        //     totalQuantity: { $first: "$totalQuantity" },
-        //     totalPrice: { $first: "$totalPrice" },
-        //     saleByCategory: {
-        //         $first: {
-        //             categoryTitle: { $second: "$categoryDetail.title" }
-        //         }
-        //     }
-        // }
 
         const projectStage = {
             "userDetail.password": 0,
