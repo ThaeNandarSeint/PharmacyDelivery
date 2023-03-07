@@ -22,7 +22,7 @@ const getMyInfo = async (req, res, next) => {
 
         const user = await Users.findById(req.user.id).select('-password')
 
-        return res.status(200).json({ statusCode: 200, payload: { user, roleType: user.roleType }, message: "" })
+        return res.status(200).json({ statusCode: 200, payload: user, message: "" })
 
     }catch(err){
         next(err)

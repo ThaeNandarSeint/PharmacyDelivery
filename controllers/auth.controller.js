@@ -68,7 +68,8 @@ const register = async (req, res, next) => {
                 email,
                 password: passwordHash,
                 pictureUrls: ["https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"],
-                picPublicIds: ["PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"]
+                picPublicIds: ["PharmacyDelivery/Users/default-profile-picture_nop9jb.webp"],
+                roleType: 'Customer'
             })
 
             const savedUser = await newUser.save()

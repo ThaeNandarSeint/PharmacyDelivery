@@ -243,6 +243,7 @@ const getAllOrders = async (req, res, next) => {
                 $lt: endDate
             }
         }
+
         const statusFilter = {
             status: {
                 $eq: status
@@ -276,36 +277,24 @@ const getAllOrders = async (req, res, next) => {
         const matchStage = {
             $or: [
                 { "userDetail.name": { $regex: userName } },
-                { "medicineDetail.name": { $regex: medicineName } },
-                { "categoryDetail.title": { $regex: categoryTitle } },
+                // { "medicineDetail.name": { $regex: medicineName } },
+                // { "categoryDetail.title": { $regex: categoryTitle } },
             ],
         }
 
-        const groupStage = {
-            _id: "$_id",
-            totalQuantity: { $first: "$totalQuantity" },
-            totalPrice: { $first: "$totalPrice" },
-            saleByCategory: {
-                $first: {
-                    categoryTitle: { $second: "$categoryDetail.title" }
-                }
-            }
-        }
+        // const groupStage = {
+        //     _id: "$_id",
+        //     totalQuantity: { $first: "$totalQuantity" },
+        //     totalPrice: { $first: "$totalPrice" },
+        //     saleByCategory: {
+        //         $first: {
+        //             categoryTitle: { $second: "$categoryDetail.title" }
+        //         }
+        //     }
+        // }
 
         const projectStage = {
-            "userDetail._id": 0,
-            "userDetail.id": 0,
-            "userDetail.email": 0,
             "userDetail.password": 0,
-            "userDetail.pictureUrls": 0,
-            "userDetail.picPublicIds": 0,
-
-            "userDetail.isTwoFactor": 0,
-            "userDetail.phoneNumber": 0,
-            "userDetail.favouriteMedicines": 0,
-            "userDetail.createdAt": 0,
-            "userDetail.updatedAt": 0,
-            "userDetail.roleType": 0,
         }
 
         const limitStage = limit * 1
@@ -316,28 +305,25 @@ const getAllOrders = async (req, res, next) => {
             { $match: statusFilter },
 
             { $lookup: userLookup },
-            { $project: projectStage },            
-
-            // { $unwind: "$orderDetails" },
-            // { $lookup: orderDetailLookup },
-
-            // { $lookup: medicineLookup },
-            // { $unwind: "$medicineDetails" },
-            // { $lookup: categoryLookup },
-            // { $unwind: "$categoryDetail" },
+            { $project: projectStage },    
+            
             { $match: matchStage },
-            // { $group: groupStage },
 
             { $sort: { updatedAt: -1 } },
             { $skip: skipStage },
             { $limit: limitStage }
         ]
 
-        const orders = await Orders.aggregate(pipelines)
+        const orders = await Orders.aggregate(pipelines).exec()
+
+        const populatedOrders = await Orders.populate(orders, { path: 'orderDetails.medicine' })
+        
+        // const orders = await Orders.find().where(dateFilter).populate('orderDetails.medicineId')
+        // .sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit * 1)
 
         const documentCount = await Orders.countDocuments()
 
-        return res.status(200).json({ statusCode: 200, payload: orders, total: documentCount, message: "" })
+        return res.status(200).json({ statusCode: 200, payload: populatedOrders, total: documentCount, message: "" })
 
     } catch (err) {
         next(err)

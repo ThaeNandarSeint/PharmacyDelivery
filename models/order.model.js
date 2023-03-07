@@ -13,7 +13,7 @@ const orderSchema = new mongoose.Schema({
         //     default: ''
         // },
         {
-            medicineId: {
+            medicine: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'Medicines',
                 default: ''
