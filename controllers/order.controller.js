@@ -184,21 +184,21 @@ const cancelOrder = async (req, res, next) => {
             return next(error)
         }
 
-        const { medicines } = await Orders.findById(req.params.id)
+        const { orderDetails } = await Orders.findById(req.params.id)
 
-        for (let i = 0; i < medicines.length; i++) {
-            const { medicineId, quantity } = medicines[i];
+        for (let i = 0; i < orderDetails.length; i++) {
+            const { medicine, quantity } = orderDetails[i];
 
-            const { stocks } = await Medicines.findById(medicineId)
+            const { stocks } = await Medicines.findById(medicine)
 
             const newStocks = stocks + quantity
 
-            await Medicines.findByIdAndUpdate(medicineId, { stocks: newStocks })
+            await Medicines.findByIdAndUpdate(medicine, { stocks: newStocks })
         }
 
         const userId = req.user.id;
 
-        await Orders.findByIdAndUpdate(req.params.id, { status: "cancel", medicines: [], cancelBy: userId })
+        await Orders.findByIdAndUpdate(req.params.id, { status: "cancel", orderDetails: [], cancelBy: userId })
 
         return res.status(200).json({ statusCode: 200, payload: {}, message: "This order has been successfully cancelled!" })
 
