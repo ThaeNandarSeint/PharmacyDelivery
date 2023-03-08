@@ -297,12 +297,40 @@ const getAllOrders = async (req, res, next) => {
     }
 }
 
+const getMyOrders = async (req, res, next) => {
+    try {
+        const { page = 1, limit = 12, start = "2023-01-01", end = "2024-01-01", status = "pending" } = req.query
+
+        const startDate = new Date(start)
+        const endDate = new Date(end)
+
+        const dateFilter = {
+            createdAt: {
+                $gte: startDate,
+                $lt: endDate
+            }
+        }
+
+        const orders = await Orders.find({ user: req.user.id, status }).where(dateFilter).sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit * 1).exec()
+
+        const populatedOrders = await Orders.populate(orders, { path: 'orderDetails.medicine' })
+
+        const documentCount = await Orders.countDocuments()
+
+        return res.status(200).json({ statusCode: 200, payload: populatedOrders, total: documentCount, message: "" })
+
+    } catch (err) {
+        next(err)
+    }
+}
+
 module.exports = {
     createOrder,
 
     getByOrderId,
 
     getAllOrders,
+    getMyOrders,
 
     approveOrder,
     deliverOrder,

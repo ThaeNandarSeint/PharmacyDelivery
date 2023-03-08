@@ -1,7 +1,7 @@
 const router = require("express").Router();
 
 // controllers
-const { createOrder, getAllOrders, getByOrderId, approveOrder, cancelOrder, deliverOrder } = require('../controllers/order.controller');
+const { createOrder, getAllOrders, getByOrderId, approveOrder, cancelOrder, deliverOrder, getMyOrders } = require('../controllers/order.controller');
 
 // middlewares
 const { roleAuth } = require("../middlewares/roleAuth");
@@ -12,7 +12,8 @@ router.put('/approve/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operat
 router.put('/deliver/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operator", "DeliveryPerson"), deliverOrder)
 
 // can do all users
-router.get("/", getAllOrders);
+router.get("/", roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), getAllOrders);
+router.get("/me", getMyOrders);
 router.get("/orderId/:id", getByOrderId);
 
 router.put("/cancel/:id", cancelOrder);
