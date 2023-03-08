@@ -176,6 +176,7 @@ const deliverOrder = async (req, res, next) => {
 // cancel order
 const cancelOrder = async (req, res, next) => {
     try {
+
         const { status } = await Orders.findById(req.params.id)
 
         if (status === "confirm" || status === "deliver" || status === "complete" || status === "cancel") {
@@ -184,7 +185,7 @@ const cancelOrder = async (req, res, next) => {
             return next(error)
         }
 
-        const { orderDetails } = await Orders.findById(req.params.id)
+        const { orderDetails } = await Orders.findById(req.params.id);
 
         for (let i = 0; i < orderDetails.length; i++) {
             const { medicine, quantity } = orderDetails[i];

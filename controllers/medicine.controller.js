@@ -293,7 +293,7 @@ const deleteMedicine = async (req, res, next) => {
     if (picPublicIds[0] === "") {
       await removeMedicine(req.params.id)
       
-      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your category has been successfully deleted!" })
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "This medicine has been successfully deleted!" })
     }
 
     // include photo
@@ -302,7 +302,7 @@ const deleteMedicine = async (req, res, next) => {
 
       await removeMedicine(req.params.id)
 
-      return res.status(200).json({ statusCode: 200, payload: {}, message: "Your category has been successfully deleted!" })
+      return res.status(200).json({ statusCode: 200, payload: {}, message: "This medicine has been successfully deleted!" })
 
     }).catch((err) => {
 
