@@ -180,6 +180,8 @@ io.on("connection", (socket) => {
     // call end
     socket.on("callEnded", async ({ callerId, calleeId, roomSid, roomName }) => {
 
+      console.log({ callerId, calleeId, roomSid, roomName });
+
       const participantDeclineId = socket.user._id.toString() //subject
 
       const declinedParticipantId = participantDeclineId === callerId ? calleeId : callerId; //object
