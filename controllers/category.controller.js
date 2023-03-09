@@ -179,7 +179,7 @@ const getAllCategories = async (req, res, next) => {
 
     const categories = await Categories.aggregate([
       { $match: matchStage },
-      { $sort: { updatedAt: -1 } },
+      { $sort: { createdAt: -1 } },
       { $skip: skipStage },
       { $limit: limitStage }
     ])

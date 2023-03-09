@@ -199,7 +199,7 @@ const cancelOrder = async (req, res, next) => {
 
         const userId = req.user.id;
 
-        await Orders.findByIdAndUpdate(req.params.id, { status: "cancel", orderDetails: [], cancelBy: userId })
+        await Orders.findByIdAndUpdate(req.params.id, { status: "cancel", cancelBy: userId })
 
         return res.status(200).json({ statusCode: 200, payload: {}, message: "This order has been successfully cancelled!" })
 
@@ -226,7 +226,7 @@ const getByOrderId = async (req, res, next) => {
 const getAllOrders = async (req, res, next) => {
     try {
         // for one year
-        const { page = 1, limit = 12, start = "2023-01-01", end = "2024-01-01", status = "pending", userName = "", medicineName = "", categoryTitle = "" } = req.query;
+        const { page = 1, limit = 12, start = "2023-01-01", end = "2024-01-01", status = "", userName = "", medicineName = "", categoryTitle = "" } = req.query;
 
         const startDate = new Date(start)
         const endDate = new Date(end)
@@ -239,11 +239,17 @@ const getAllOrders = async (req, res, next) => {
             }
         }
 
-        const statusFilter = {
-            status: {
-                $eq: status
+        let statusFilter;
+        
+        if(status === ""){
+            statusFilter = {}
+        } else {
+            statusFilter = {
+                status: {
+                    $eq: status
+                }
             }
-        }
+        } 
 
         const userLookup = {
             from: "users",
@@ -276,7 +282,7 @@ const getAllOrders = async (req, res, next) => {
             
             { $match: matchStage },
 
-            { $sort: { updatedAt: -1 } },
+            { $sort: { createdAt: -1 } },
             { $skip: skipStage },
             { $limit: limitStage }
         ]
@@ -299,7 +305,7 @@ const getAllOrders = async (req, res, next) => {
 
 const getMyOrders = async (req, res, next) => {
     try {
-        const { page = 1, limit = 12, start = "2023-01-01", end = "2024-01-01", status = "pending" } = req.query
+        const { page = 1, limit = 12, start = "2023-01-01", end = "2024-01-01", status = "" } = req.query
 
         const startDate = new Date(start)
         const endDate = new Date(end)
@@ -311,13 +317,19 @@ const getMyOrders = async (req, res, next) => {
             }
         }
 
-        const orders = await Orders.find({ user: req.user.id, status }).where(dateFilter).sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit * 1).exec()
+        let filter;
+
+        if(status === ""){
+            filter = { user: req.user.id }
+        } else {
+            filter = { user: req.user.id, status }
+        }        
+
+        const orders = await Orders.find(filter).where(dateFilter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit * 1).exec()
 
         const populatedOrders = await Orders.populate(orders, { path: 'orderDetails.medicine' })
 
-        const documentCount = await Orders.countDocuments()
-
-        return res.status(200).json({ statusCode: 200, payload: populatedOrders, total: documentCount, message: "" })
+        return res.status(200).json({ statusCode: 200, payload: populatedOrders, total: populatedOrders.length, message: "" })
 
     } catch (err) {
         next(err)

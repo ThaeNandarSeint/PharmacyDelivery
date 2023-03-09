@@ -108,7 +108,7 @@ const getAllMedicines = async (req, res, next) => {
           if (sortBy === "price") {
             sortStage = { price: -1 }
           } else {
-            sortStage = { updatedAt: -1 }
+            sortStage = { createdAt: -1 }
           }
 
     // ----------------------
