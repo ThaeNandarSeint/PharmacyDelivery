@@ -325,11 +325,13 @@ const getMyOrders = async (req, res, next) => {
             filter = { user: req.user.id, status }
         }        
 
-        const orders = await Orders.find(filter).where(dateFilter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit * 1).exec()
+        const sortedOrders = await Orders.find(filter).where(dateFilter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit * 1).exec()
 
-        const populatedOrders = await Orders.populate(orders, { path: 'orderDetails.medicine' })
+        const populatedOrders = await Orders.populate(sortedOrders, { path: 'orderDetails.medicine' })
 
-        return res.status(200).json({ statusCode: 200, payload: populatedOrders, total: populatedOrders.length, message: "" })
+        const orders = await Orders.find(filter).where(dateFilter)
+
+        return res.status(200).json({ statusCode: 200, payload: populatedOrders, total: orders.length, message: "" })
 
     } catch (err) {
         next(err)
