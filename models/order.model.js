@@ -7,11 +7,6 @@ const orderSchema = new mongoose.Schema({
     },
 
     orderDetails: [
-        // {
-        //     type: mongoose.Schema.Types.ObjectId,
-        //     ref: 'OrderDetails',
-        //     default: ''
-        // },
         {
             medicine: {
                 type: mongoose.Schema.Types.ObjectId,
@@ -39,6 +34,11 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users',
         required: true,
+    },
+
+    deliveryPerson: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Users',
     },
 
     status: {

@@ -224,11 +224,7 @@ const getAllUsers = async (req, res, next) => {
 
 const createDeliveryPerson = async (req, res, next) => {
     try {
-        const { email, phoneNumber, vehicleType, vehicleNumber, buildingNo, street, quarter, township, city, state } = req.body
-
-        const address = {
-            buildingNo, street, quarter, township, city, state
-        }
+        const { email, phoneNumber, vehicleType, vehicleNumber, address } = req.body
 
         const { _id } = await Users.findOne({ email })
 

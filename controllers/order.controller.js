@@ -5,6 +5,8 @@ const DeliveryInfos = require('../models/deliveryInfo.model')
 const DeliveryPersons = require('../models/deliveryPerson.model')
 const OrderDetails = require('../models/orderDetail.model')
 
+const mongoose = require('mongoose')
+
 // services
 const sendMail = require('../services/sendMail')
 const { orderConfirmHtml } = require('../helpers/orderConfirmHtml')
@@ -87,9 +89,9 @@ const createOrder = async (req, res, next) => {
 const approveOrder = async (req, res, next) => {
     try {
 
-        const { prepareTime = 0, deliveryFee } = req.body
+        const { prepareTime = 0, deliveryFee, deliveryPersonId } = req.body
 
-        const { status, userId } = await Orders.findById(req.params.id)
+        const { status, user } = await Orders.findById(req.params.id)
 
         if (status === "deliver" || status === "complete" || status === "cancel") {
             const error = new Error(`Not allowed to confirm. This order has been already on ${status} stage!`);
@@ -97,47 +99,28 @@ const approveOrder = async (req, res, next) => {
             return next(error)
         }
 
-        const timeTaken = (7 * 24 * 60 * 60 * 1000) + (prepareTime * 1)  //default -> 1 week
-        const deliveryTime = timeTaken / (24 * 60 * 60 * 1000)
+        const oneWeek = 7 * 24 * 60 * 60 * 1000
+        const oneDay = 24 * 60 * 60 * 1000
 
-        const matchStage = {
-            status: {
-                $eq: "inactive"
-            }
-        }
+        const timeTaken = oneWeek + (prepareTime * 1)  //default -> 1 week
+        const deliveryTime = timeTaken / oneDay
 
-        const deliveryBoys = await DeliveryPersons.aggregate([{ $match: matchStage }, { $sample: { size: 1 } }])
-        if (!deliveryBoys) {
-            const error = new Error("All delivery boys are busy!");
+        const deliveryPerson = await DeliveryPersons.findById(deliveryPersonId)
+
+        if (deliveryPerson.status === "active") {
+            const error = new Error(`This delivery boy has been already on ${deliveryPerson.status} stage!`);
             error.status = 400;
             return next(error)
         }
 
-        const deliveryBoyId = deliveryBoys[0]._id
-        const deliveryBoyStatus = deliveryBoys[0].status
+        await Orders.findByIdAndUpdate(req.params.id, { status: "deliver", deliveryPerson: deliveryPersonId, deliveryFee, deliveryTime })
+        await DeliveryPersons.findByIdAndUpdate(deliveryPersonId, { status: "active" })
 
-        if (deliveryBoyStatus === "active") {
-            const error = new Error(`This delivery boy has been already on ${deliveryBoyStatus} stage!`);
-            error.status = 400;
-            return next(error)
-        }
-        // create custom id
-        const id = await createCustomId(DeliveryInfos, "DI")
+        const { email } = await Users.findById(user)
 
-        const deliveryInfo = new DeliveryInfos({
-            id, deliveryTime, customerId: userId, deliveryFee, deliveryBoyId
-        })
+        // const html = `You order has been on deliver stage and will be reach within ${deliveryTime} days`
 
-        await deliveryInfo.save()
-
-        await Orders.findByIdAndUpdate(req.params.id, { status: "deliver" })
-        await DeliveryPersons.findByIdAndUpdate(deliveryBoyId, { status: "active" })
-
-        const { email } = await Users.findById(userId)
-
-        const html = `You order has been on deliver stage and will be reach within ${deliveryTime} days`
-
-        sendMail(email, html)
+        // sendMail(email, html)
 
         return res.status(200).json({ statusCode: 200, payload: {}, message: "This order has been on deliver stage!" })
 
@@ -150,7 +133,7 @@ const approveOrder = async (req, res, next) => {
 const deliverOrder = async (req, res, next) => {
     try {
 
-        const { status, userId } = await Orders.findById(req.params.id)
+        const { status, user, deliveryPerson } = await Orders.findById(req.params.id)
 
         if (status === "pending" || status === "complete" || status === "cancel") {
             const error = new Error(`Not allowed to confirm. This order has been already on ${status} stage!`);
@@ -158,13 +141,15 @@ const deliverOrder = async (req, res, next) => {
             return next(error)
         }
 
-        await Orders.findByIdAndUpdate(req.params.id, { status: "complete" })
+        await DeliveryPersons.findByIdAndUpdate(deliveryPerson, { status: "inactive" })
 
-        const { email } = await Users.findById(userId)
+        await Orders.findByIdAndUpdate(req.params.id, { status: "complete" })        
 
-        const html = `You order has been on complete stage. If you do not receive your order, contact us`
+        // const { email } = await Users.findById(user)
 
-        sendMail(email, html)
+        // // const html = `You order has been on complete stage. If you do not receive your order, contact us`
+
+        // // sendMail(email, html)
 
         return res.status(200).json({ statusCode: 200, payload: {}, message: "This order has been on complete stage!" })
 
@@ -257,6 +242,12 @@ const getAllOrders = async (req, res, next) => {
             foreignField: "_id",
             as: "userDetail",
         }
+        const deliveryPersonLookup = {
+            from: "deliverypersons",
+            localField: "deliveryPerson",
+            foreignField: "_id",
+            as: "deliveryPersonDetail",
+        }
 
         const matchStage = {
             $or: [
@@ -268,6 +259,7 @@ const getAllOrders = async (req, res, next) => {
 
         const projectStage = {
             "userDetail.password": 0,
+            "deliveryPersonDetail._id": 0
         }
 
         const limitStage = limit * 1
@@ -278,6 +270,7 @@ const getAllOrders = async (req, res, next) => {
             { $match: statusFilter },
 
             { $lookup: userLookup },
+            { $lookup: deliveryPersonLookup },
             { $project: projectStage },    
             
             { $match: matchStage },
@@ -323,9 +316,57 @@ const getMyOrders = async (req, res, next) => {
             filter = { user: req.user.id }
         } else {
             filter = { user: req.user.id, status }
-        }        
+        }   
 
-        const sortedOrders = await Orders.find(filter).where(dateFilter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit * 1).exec()
+        let statusFilter
+
+        if(status === ""){
+            statusFilter = {
+                user: {
+                    $eq: mongoose.Types.ObjectId(req.user.id)
+                }
+            }
+        } else {
+            statusFilter = {
+                status: {
+                    $eq: status
+                },
+                user: {
+                    $eq: mongoose.Types.ObjectId(req.user.id)
+                }
+            }
+        } 
+
+        const deliveryPersonLookup = {
+            from: "deliverypersons",
+            localField: "deliveryPerson",
+            foreignField: "_id",
+            as: "deliveryPersonDetail",
+        }
+
+        const projectStage = {
+            "userDetail.password": 0,
+            "deliveryPersonDetail._id": 0
+        }
+
+        const limitStage = limit * 1
+        const skipStage = (page - 1) * limit
+        
+        const pipelines = [
+            { $match: dateFilter },
+            { $match: statusFilter },
+
+            { $lookup: deliveryPersonLookup },
+            { $project: projectStage },    
+
+            { $sort: { createdAt: -1 } },
+            { $skip: skipStage },
+            { $limit: limitStage }
+        ]
+
+        const sortedOrders = await Orders.aggregate(pipelines).exec()
+
+        // const sortedOrders = await Orders.find(filter).where(dateFilter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit * 1).exec()
 
         const populatedOrders = await Orders.populate(sortedOrders, { path: 'orderDetails.medicine' })
 

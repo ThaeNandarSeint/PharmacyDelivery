@@ -31,30 +31,8 @@ const deliveryPersonSchema = new mongoose.Schema(
     },
 
     address: {
-        buildingNo: {
-            type: String,
-            required: [true, "Please enter building number!"],
-        },
-        street: {
-            type: String,
-            required: [true, "Please enter street name!"],
-        },
-        quarter: {
-            type: String,
-            required: [true, "Please enter quarter name!"],
-        },
-        township: {
-            type: String,
-            required: [true, "Please enter township name!"],
-        },
-        city: {
-            type: String,
-            required: [true, "Please enter city name!"],
-        },
-        state: {
-            type: String,
-            required: [true, "Please enter state name!"],
-        }
+        type: String,
+        required: [true, "Please enter customer address!"],
     }
 
   },
