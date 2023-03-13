@@ -2,19 +2,21 @@ const router = require('express').Router()
 
 // controllers
 const { updatePassword, getByUserId, getAllUsers, updateMe, grantRole, getMyInfo } = require('../controllers/user.controller');
+const { auth } = require('../middlewares/auth');
 
 // middlewares
 const { roleAuth } = require('../middlewares/roleAuth');
+const { userAuth } = require('../middlewares/userAuth');
 
 const profileUpdateValidator = require('../validators/users/profileUpdate.validator');
 
 // routes
-router.get('/me/info', getMyInfo)
-router.put('/me/password', updatePassword)
-router.put('/me', profileUpdateValidator, updateMe)
+router.get('/me/info', auth, getMyInfo)
+router.put('/me/password', userAuth, updatePassword)
+router.put('/me', userAuth, profileUpdateValidator, updateMe)
 
-router.get('/', getAllUsers)
-router.get('/:id', getByUserId)
+router.get('/', userAuth, roleAuth("Superadmin", "Admin"), getAllUsers)
+router.get('/:id', userAuth, roleAuth("Superadmin", "Admin"), getByUserId)
 
 // ----------------------- can do only SuperAdmin & Admin -------------------------------
 

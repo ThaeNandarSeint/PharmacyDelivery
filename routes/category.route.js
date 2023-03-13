@@ -2,17 +2,17 @@ const router = require("express").Router();
 
 // controllers
 const { getAllCategories, createCategory, updateCategory, deleteCategory, getByCategoryId } = require("../controllers/category.controller");
+const { auth } = require("../middlewares/auth");
 
 // middlewares
 const { roleAuth } = require('../middlewares/roleAuth');
-const { userAuth } = require("../middlewares/userAuth");
 
 //validation middlewares
 const { categoryValidator } = require("../validators/categories/category.validator");
 
-router.post("/", userAuth, roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, createCategory);
-router.put("/:id", userAuth, roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, updateCategory);
-router.delete("/:id", userAuth, roleAuth("Superadmin", "Admin", "Supervisor"), deleteCategory);
+router.post("/", auth, roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, createCategory);
+router.put("/:id", auth, roleAuth("Superadmin", "Admin", "Supervisor"), categoryValidator, updateCategory);
+router.delete("/:id", auth, roleAuth("Superadmin", "Admin", "Supervisor"), deleteCategory);
 
 //---------------------- can do all users ----------------------
 router.get("/", getAllCategories);

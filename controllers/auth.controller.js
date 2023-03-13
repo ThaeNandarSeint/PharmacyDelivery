@@ -164,7 +164,7 @@ const login = async (req, res, next) => {
         }
 
         // create token
-        const accessToken = createAccessToken({ id: user._id })
+        const accessToken = createAccessToken({ id: user._id, roleType: user.roleType })
 
         return res.status(200).json({ statusCode: 200, payload: { user, accessToken, roleType: user.roleType }, message: "Login Success!" })
 

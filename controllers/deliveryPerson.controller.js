@@ -76,7 +76,7 @@ const login = async (req, res, next) => {
 
 
         // create token
-        const accessToken = createAccessToken({ id: user._id })
+        const accessToken = createAccessToken({ id: user._id, roleType: "DeliveryPerson" })
 
         return res.status(200).json({ statusCode: 200, payload: { user, accessToken }, message: "Login Success!" })
 
@@ -121,6 +121,7 @@ const getAllOrders = async (req, res, next) => {
             foreignField: "_id",
             as: "userDetail",
         }
+
         const deliveryPersonLookup = {
             from: "deliverypersons",
             localField: "deliveryPerson",
@@ -140,13 +141,13 @@ const getAllOrders = async (req, res, next) => {
             { $match: dateFilter },
             { $match: filter },
 
-            // { $lookup: userLookup },
-            // { $lookup: deliveryPersonLookup },
-            // { $project: projectStage },    
+            { $lookup: userLookup },
+            { $lookup: deliveryPersonLookup },
+            { $project: projectStage },    
 
-            // { $sort: { createdAt: -1 } },
-            // { $skip: skipStage },
-            // { $limit: limitStage }
+            { $sort: { createdAt: -1 } },
+            { $skip: skipStage },
+            { $limit: limitStage }
         ]
 
         const sortedOrders = await Orders.aggregate(pipelines).exec()
@@ -192,7 +193,7 @@ const getAllDeliveryPersons = async (req, res, next) => {
             { $match: dateFilter },
             { $match: matchStage },
             { $project: projectStage },
-            { $sort: { updatedAt: -1 } },
+            { $sort: { createdAt: -1 } },
             { $skip: skipStage },
             { $limit: limitStage }
         ])

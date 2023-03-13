@@ -1,9 +1,7 @@
 const Users = require('../models/user.model')
 const Orders = require('../models/order.model')
 const Medicines = require('../models/medicine.model')
-const DeliveryInfos = require('../models/deliveryInfo.model')
 const DeliveryPersons = require('../models/deliveryPerson.model')
-const OrderDetails = require('../models/orderDetail.model')
 
 const mongoose = require('mongoose')
 
@@ -265,7 +263,7 @@ const getAllOrders = async (req, res, next) => {
 
         const projectStage = {
             "userDetail.password": 0,
-            "deliveryPersonDetail._id": 0
+            "deliveryPersonDetail.password": 0
         }
 
         const limitStage = limit * 1

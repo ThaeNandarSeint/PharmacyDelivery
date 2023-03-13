@@ -1,12 +1,9 @@
-// models
-const Users = require('../models/user.model')
-
 const roleAuth = (...allowedRoles) => {
     return async (req, res, next) => {
         try {
-            const userId = req.user.id
+            const user = req.user
             
-            if (!userId) {
+            if (!user) {
                 const error = new Error("You need to first login!");
                 error.status = 401;
                 return next(error)
@@ -15,9 +12,7 @@ const roleAuth = (...allowedRoles) => {
             const rolesArray = [...allowedRoles];
 
             // check type
-            const { roleType } = await Users.findById(userId)
-
-            if (!rolesArray.includes(roleType)) {
+            if (!rolesArray.includes(user.roleType)) {
                 const error = new Error("You are not authorized for this action!");
                 error.status = 403;
                 return next(error)

@@ -42,26 +42,27 @@ const reviewRoute = require("./routes/review.route");
 const videoRoomRoute = require("./routes/videoRoom.route");
 
 // middlewares
-const { userAuth } = require("./middlewares/userAuth");
+const { auth } = require("./middlewares/auth");
 
 app.use("/api/auth", authRoute);
-app.use("/api/users", userAuth, userRoute);
+app.use("/api/users", userRoute);
 app.use("/api/categories", categoryRoute);
 app.use("/api/medicines", medicineRoute);
-app.use("/api/orders", userAuth, orderRoute);
-app.use("/api/messages", userAuth, messageRoute);
+app.use("/api/orders", auth, orderRoute);
+app.use("/api/messages", auth, messageRoute);
 
 app.use("/api/deliveryPersons", deliveryPersonRoute);
 
-app.use("/api/reviews", userAuth, reviewRoute);
+app.use("/api/reviews", auth, reviewRoute);
 
-app.use("/api/rooms", userAuth, videoRoomRoute);
+app.use("/api/rooms", auth, videoRoomRoute);
 
 // socket setup
 const socket = require("socket.io");
 const jwt = require('jsonwebtoken')
 const { getAccessToken, createCallLog, closeRoom, updateCallLog, checkCallStatus } = require("./services/videoCall.service");
-const Users = require('./models/user.model')
+const Users = require('./models/user.model');
+
 
 const CLIENT_URL = process.env.CLIENT_URL;
 

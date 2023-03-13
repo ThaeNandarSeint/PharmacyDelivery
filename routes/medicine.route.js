@@ -10,10 +10,10 @@ const {
   addToFavourite,
   getAllFavouriteMedicines,
 } = require("../controllers/medicine.controller");
+const { auth } = require("../middlewares/auth");
 
 // middlewares
 const { roleAuth } = require("../middlewares/roleAuth");
-const { userAuth } = require("../middlewares/userAuth");
 
 //validation middlewares
 const {
@@ -23,21 +23,21 @@ const {
 // routes
 router.post(
   "/",
-  userAuth,
+  auth,
   roleAuth("Superadmin", "Admin", "Supervisor"),
   medicineValidator,
   createMedicine
 );
 router.put(
   "/:id",
-  userAuth,
+  auth,
   roleAuth("Superadmin", "Admin", "Supervisor"),
   medicineValidator,
   updateMedicine
 );
 router.delete(
   "/:id",
-  userAuth,
+  auth,
   roleAuth("Superadmin", "Admin", "Supervisor"),
   deleteMedicine
 );
@@ -46,7 +46,7 @@ router.delete(
 router.get("/", getAllMedicines);
 router.get("/:id", getByMedicineId);
 
-router.put('/favourite/add', userAuth, addToFavourite)
-router.get('/favourite/get', userAuth, getAllFavouriteMedicines)
+router.put('/favourite/add', auth, addToFavourite)
+router.get('/favourite/get', auth, getAllFavouriteMedicines)
 
 module.exports = router;
