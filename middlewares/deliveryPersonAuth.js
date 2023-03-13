@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken')
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET
 
-const Users = require('../models/user.model')
+const DeliveryPersons = require('../models/deliveryPerson.model')
 
-const userAuth = async (req, res, next) => {
+const deliveryPersonAuth = async (req, res, next) => {
     try {
         const accessToken = req.header('Authorization')
 
@@ -20,8 +20,8 @@ const userAuth = async (req, res, next) => {
                 return next(error)
             }
 
-            const isUser = await Users.findById(user.id)
-            if(!isUser){
+            const isDeliveryPerson = await DeliveryPersons.findById(user.id)
+            if(!isDeliveryPerson){
                 const error = new Error("You are not authorized for this action!");
                 error.status = 403;
                 return next(error)
@@ -37,5 +37,5 @@ const userAuth = async (req, res, next) => {
 }
 
 module.exports = {
-    userAuth
+    deliveryPersonAuth
 }

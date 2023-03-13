@@ -4,35 +4,60 @@ const deliveryPersonSchema = new mongoose.Schema(
   {
     id: {
       type: String,
-      required: [true, "Please enter delivery boy id!"],
+      required: [true, "Please enter delivery person id!"],
     },
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users',
-        required: true,
+
+    name: {
+      type: String,
+      required: [true, "Please enter your name!"],
+      trim: true
     },
-    phoneNumber: {
+    email: {
+      type: String,
+      required: [true, "Please enter your email!"],
+      trim: true,
+      unique: true
+    },
+    password: {
+      type: String,
+      required: [true, "Please enter your password!"]
+    },
+
+    pictureUrls: [
+      {
         type: String,
-        required: [true, "Please enter phone number!"],
+        default: 'https://res.cloudinary.com/dm5vsvaq3/image/upload/v1673412749/PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
+      }
+    ],
+    picPublicIds: [
+      {
+        type: String,
+        default: 'PharmacyDelivery/Users/default-profile-picture_nop9jb.webp'
+      }
+    ],
+
+    phoneNumber: {
+      type: String,
+      required: [true, "Please enter phone number!"],
     },
 
     vehicleType: {
-        type: String,
-        enum: ['bike', 'car'],
+      type: String,
+      enum: ['bike', 'car'],
     },
     vehicleNumber: {
-        type: String,
-        required: [true, "Please enter vehicle number!"],
+      type: String,
+      required: [true, "Please enter vehicle number!"],
     },
 
     status: {
-        type: String,
-        enum: ['active', 'inactive'],
+      type: String,
+      enum: ['active', 'inactive'],
     },
 
     address: {
-        type: String,
-        required: [true, "Please enter customer address!"],
+      type: String,
+      required: [true, "Please enter address!"],
     }
 
   },

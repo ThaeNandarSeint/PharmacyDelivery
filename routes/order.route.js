@@ -13,6 +13,7 @@ router.put('/complete/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Opera
 
 // can do all users
 router.get("/", roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), getAllOrders);
+
 router.get("/me", getMyOrders);
 router.get("/orderId/:id", getByOrderId);
 

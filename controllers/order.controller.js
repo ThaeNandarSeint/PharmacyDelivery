@@ -388,16 +388,6 @@ const getMyOrders = async (req, res, next) => {
 
         const sortedOrders = await Orders.aggregate(pipelines).exec()
 
-        // const sortedOrders = await Orders.find(filter).where(dateFilter)
-        // .sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit * 1)
-        // // .populate('orderDetails.medicine')
-        // .populate('deliveryPerson')
-        // // .populate('user')
-        // .populate('deliveryPerson.userId')
-        // // .select('-user.password')
-        // // .select('-deliveryPerson.userId.password')
-        // .exec()
-
         const populatedOrders = await Orders.populate(sortedOrders, { path: 'orderDetails.medicine' })
 
         const orders = await Orders.find(filter).where(dateFilter)

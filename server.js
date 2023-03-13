@@ -51,7 +51,7 @@ app.use("/api/medicines", medicineRoute);
 app.use("/api/orders", userAuth, orderRoute);
 app.use("/api/messages", userAuth, messageRoute);
 
-app.use("/api/deliveryPersons", userAuth, deliveryPersonRoute);
+app.use("/api/deliveryPersons", deliveryPersonRoute);
 
 app.use("/api/reviews", userAuth, reviewRoute);
 
