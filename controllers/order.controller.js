@@ -228,26 +228,18 @@ const getAllOrders = async (req, res, next) => {
 
         if(status === ""){
             statusFilter = {
-                user: {
-                    $eq: mongoose.Types.ObjectId(req.user.id)
-                }
+                
             }
         } else if(Array.isArray(status)) {
             statusFilter = {
                 status: {
                     $in: status
-                },
-                user: {
-                    $eq: mongoose.Types.ObjectId(req.user.id)
                 }
             }
         } else {
             statusFilter = {
                 status: {
                     $eq: status
-                },
-                user: {
-                    $eq: mongoose.Types.ObjectId(req.user.id)
                 }
             }
         }
