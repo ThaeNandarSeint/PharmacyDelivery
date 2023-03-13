@@ -224,17 +224,33 @@ const getAllOrders = async (req, res, next) => {
             }
         }
 
-        let statusFilter;
-        
+        let statusFilter = {};
+
         if(status === ""){
-            statusFilter = {}
+            statusFilter = {
+                user: {
+                    $eq: mongoose.Types.ObjectId(req.user.id)
+                }
+            }
+        } else if(Array.isArray(status)) {
+            statusFilter = {
+                status: {
+                    $in: status
+                },
+                user: {
+                    $eq: mongoose.Types.ObjectId(req.user.id)
+                }
+            }
         } else {
             statusFilter = {
                 status: {
                     $eq: status
+                },
+                user: {
+                    $eq: mongoose.Types.ObjectId(req.user.id)
                 }
             }
-        } 
+        }
 
         const userLookup = {
             from: "users",
@@ -252,8 +268,6 @@ const getAllOrders = async (req, res, next) => {
         const matchStage = {
             $or: [
                 { "userDetail.name": { $regex: userName } },
-                // { "medicineDetail.name": { $regex: medicineName } },
-                // { "categoryDetail.title": { $regex: categoryTitle } },
             ],
         }
 
@@ -318,10 +332,19 @@ const getMyOrders = async (req, res, next) => {
             filter = { user: req.user.id, status }
         }   
 
-        let statusFilter
+        let statusFilter = {};
 
         if(status === ""){
             statusFilter = {
+                user: {
+                    $eq: mongoose.Types.ObjectId(req.user.id)
+                }
+            }
+        } else if(Array.isArray(status)) {
+            statusFilter = {
+                status: {
+                    $in: status
+                },
                 user: {
                     $eq: mongoose.Types.ObjectId(req.user.id)
                 }
@@ -335,8 +358,14 @@ const getMyOrders = async (req, res, next) => {
                     $eq: mongoose.Types.ObjectId(req.user.id)
                 }
             }
-        } 
+        }
 
+        const userLookup = {
+            from: "users",
+            localField: "user",
+            foreignField: "_id",
+            as: "userDetail",
+        }
         const deliveryPersonLookup = {
             from: "deliverypersons",
             localField: "deliveryPerson",
@@ -356,6 +385,7 @@ const getMyOrders = async (req, res, next) => {
             { $match: dateFilter },
             { $match: statusFilter },
 
+            { $lookup: userLookup },
             { $lookup: deliveryPersonLookup },
             { $project: projectStage },    
 
@@ -366,7 +396,15 @@ const getMyOrders = async (req, res, next) => {
 
         const sortedOrders = await Orders.aggregate(pipelines).exec()
 
-        // const sortedOrders = await Orders.find(filter).where(dateFilter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit * 1).exec()
+        // const sortedOrders = await Orders.find(filter).where(dateFilter)
+        // .sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit * 1)
+        // // .populate('orderDetails.medicine')
+        // .populate('deliveryPerson')
+        // // .populate('user')
+        // .populate('deliveryPerson.userId')
+        // // .select('-user.password')
+        // // .select('-deliveryPerson.userId.password')
+        // .exec()
 
         const populatedOrders = await Orders.populate(sortedOrders, { path: 'orderDetails.medicine' })
 

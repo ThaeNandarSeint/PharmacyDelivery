@@ -30,16 +30,16 @@ const orderSchema = new mongoose.Schema({
         default: 0
     },
 
+    deliveryPerson: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'DeliveryPersons',
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users',
         required: true,
     },
 
-    deliveryPerson: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users',
-    },
 
     status: {
         type: String,

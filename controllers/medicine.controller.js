@@ -1,6 +1,7 @@
 // models
 const Medicines = require("../models/medicine.model");
-const Users = require('../models/user.model')
+const Users = require('../models/user.model');
+const { checkObjectId } = require("../services/checkObjectId.service");
 
 // services
 const { createCustomId } = require("../services/createCustomId");
@@ -230,6 +231,9 @@ const updateMedicine = async (req, res, next) => {
   try {
 
     const { categoryId, name, details, companyName, expiredAt, price, stocks } = req.body;
+
+    // const isValid = checkObjectId({ _id: req.params.id })
+    // console.log(isValid);
 
     const expiredDate = new Date(expiredAt)
 
