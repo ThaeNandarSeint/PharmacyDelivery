@@ -15,8 +15,8 @@ router.get('/me', auth, getMyInfo)
 router.put('/me/password', userAuth, updatePassword)
 router.put('/me', userAuth, profileUpdateValidator, updateMe)
 
-router.get('/', userAuth, roleAuth("Superadmin", "Admin"), getAllUsers)
-router.get('/:id', userAuth, roleAuth("Superadmin", "Admin"), getByUserId)
+router.get('/', auth, roleAuth("Superadmin", "Admin"), getAllUsers)
+router.get('/:id', auth, roleAuth("Superadmin", "Admin"), getByUserId)
 
 // ----------------------- can do only SuperAdmin & Admin -------------------------------
 

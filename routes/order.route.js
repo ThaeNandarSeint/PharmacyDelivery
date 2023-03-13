@@ -14,9 +14,10 @@ router.put('/approve/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operat
 
 // can do all users
 router.get("/", roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), getAllOrders);
-router.get("/:id", roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), getByOrderId);
+
 
 router.get("/me", getMyOrders);
+router.get("/:id", roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), getByOrderId);
 
 router.put("/cancel/:id", cancelOrder);
 
