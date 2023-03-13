@@ -11,7 +11,7 @@ const { userAuth } = require('../middlewares/userAuth');
 const profileUpdateValidator = require('../validators/users/profileUpdate.validator');
 
 // routes
-router.get('/me/info', auth, getMyInfo)
+router.get('/me', auth, getMyInfo)
 router.put('/me/password', userAuth, updatePassword)
 router.put('/me', userAuth, profileUpdateValidator, updateMe)
 

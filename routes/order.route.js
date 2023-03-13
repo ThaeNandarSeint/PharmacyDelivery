@@ -8,15 +8,15 @@ const { deliveryPersonAuth } = require("../middlewares/deliveryPersonAuth");
 const { roleAuth } = require("../middlewares/roleAuth");
 
 // routes
-router.post('/', createOrder)
+router.post('/', roleAuth("Customer"), createOrder)
 router.put('/approve/:id', roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), approveOrder)
 
 
 // can do all users
 router.get("/", roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), getAllOrders);
+router.get("/:id", roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), getByOrderId);
 
 router.get("/me", getMyOrders);
-router.get("/orderId/:id", getByOrderId);
 
 router.put("/cancel/:id", cancelOrder);
 

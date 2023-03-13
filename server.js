@@ -61,8 +61,11 @@ app.use("/api/rooms", auth, videoRoomRoute);
 const socket = require("socket.io");
 const jwt = require('jsonwebtoken')
 const { getAccessToken, createCallLog, closeRoom, updateCallLog, checkCallStatus } = require("./services/videoCall.service");
-const Users = require('./models/user.model');
 
+// models
+const Users = require('./models/user.model');
+const DeliveryPersons = require('./models/deliveryPerson.model');
+const { default: mongoose } = require("mongoose");
 
 const CLIENT_URL = process.env.CLIENT_URL;
 
@@ -87,10 +90,26 @@ io.use((socket, next) => {
     }
 
     jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, async (err, decoded) => {
+      
       if (err) {
         const error = new Error("Token expires or Incorrect token!");
         error.status = 401;
         return next(error)
+      }
+
+      if(decoded.roleType === "DeliveryPerson"){
+        const user = await DeliveryPersons.findById(decoded.id)
+
+        if (!user) {
+          const error = new Error("Token expires or Incorrect token!");
+          error.status = 401;
+          return next(error)
+        }
+
+        socket.user = user;
+        socket.roleType = decoded.roleType
+
+        return next()
       }
 
       const user = await Users.findById(decoded.id)
@@ -102,6 +121,7 @@ io.use((socket, next) => {
       }
 
       socket.user = user;
+      socket.roleType = decoded.roleType
 
       next();
     });
@@ -114,6 +134,7 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   try {
     const user = socket.user
+    const roleType = socket.roleType
 
     socket.join(user._id.toString());
 
@@ -125,6 +146,18 @@ io.on("connection", (socket) => {
 
     // click call btn
     socket.on("startCall", async ({ callerId, calleeId, roomName, roomSid }) => {
+      if(callerId === "" || calleeId === "") {
+        return console.log('required');
+      }
+      const isUser = await Users.findById(calleeId)
+
+      let userType;
+      isUser ? userType = "Customer" : "DeliveryPerson"
+
+      if(userType === roleType){
+        return console.log('cannot call');
+      }
+
       if (callerId !== calleeId) {
 
         const token = getAccessToken(roomName, calleeId)

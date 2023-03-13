@@ -165,7 +165,7 @@ const getAllReviews = async (req, res, next) => {
     }
 
     const matchStage = {
-      $and: [
+      $or: [
         { "medicineDetail.name": { $regex: medicineName } },
         { "medicineDetail.companyName": { $regex: companyName } }
       ],
@@ -178,7 +178,7 @@ const getAllReviews = async (req, res, next) => {
       { $match: dateFilter },
       { $lookup: medicineLookup },
       { $match: matchStage },
-      { $sort: { updatedAt: -1 } },
+      { $sort: { createdAt: -1 } },
       { $skip: skipStage },
       { $limit: limitStage }
     ])
@@ -209,9 +209,9 @@ const getByReviewId = async (req, res, next) => {
 const updateAvgRating = async (medicineId) => {
 
   const reviews = await Reviews.aggregate([
-    { 
-      $match: { medicineId: new mongoose.Types.ObjectId(medicineId) }     
-    }, 
+    {
+      $match: { medicineId: new mongoose.Types.ObjectId(medicineId) }
+    },
     { $group: { _id: null, avgRating: { $avg: "$rating" } } }
   ])
   const avgRating = reviews[0].avgRating.toFixed(1)
