@@ -17,7 +17,7 @@ router.get("/", roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), getAl
 
 
 router.get("/me", getMyOrders);
-router.get("/:id", roleAuth("Superadmin", "Admin", "Supervisor", "Operator"), getByOrderId);
+router.get("/:id", getByOrderId);
 
 router.put("/cancel/:id", cancelOrder);
 
