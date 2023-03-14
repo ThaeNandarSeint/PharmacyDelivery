@@ -149,14 +149,14 @@ io.on("connection", (socket) => {
       if(callerId === "" || calleeId === "") {
         return console.log('required');
       }
-      const isUser = await Users.findById(calleeId)
+      // const isUser = await Users.findById(calleeId)
 
-      let userType;
-      isUser ? userType = "Customer" : "DeliveryPerson"
+      // let userType;
+      // isUser ? userType = "Customer" : "DeliveryPerson"
 
-      if(userType === roleType){
-        return console.log('cannot call');
-      }
+      // if(userType === roleType){
+      //   return console.log('cannot call');
+      // }
 
       if (callerId !== calleeId) {
 
