@@ -14,8 +14,8 @@ router.post('/register', register)
 router.post('/login', login)
 router.get('/logout', logout)
 
-router.get("/orders", auth, roleAuth("Superadmin", "Admin", "DeliveryPerson"), getAllOrders);
-router.put('/orders/complete/:id', auth, roleAuth("Superadmin", "Admin", "DeliveryPerson"), deliverOrder)
+router.get("/orders", auth, getAllOrders);
+router.put('/orders/complete/:id', auth, deliverOrder)
 
 router.get("/", auth, roleAuth("Superadmin", "Admin"), getAllDeliveryPersons);
 
